@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="Transaction"
+      targetNamespace="tag:interstates.com,2012:Control.Database/2.0"
+      elementFormDefault="qualified"
+      xmlns="tag:interstates.com,2012:Control.Database/2.0"
+      xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <xs:complexType name ="Transaction">
+    <xs:annotation>
+      <xs:documentation>
+        A transaction that represents a System.Data.DbTransaction or System.Transactions.Transaction.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:attribute name="Name" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>
+          The Name of the transaction.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="TransactionId" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          The unique identifier of the transaction.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="CreatedOn" type="xs:dateTime" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          The time that the transaction was created.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:attribute name="TransactionState" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          The state of the transaction.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+    <xs:anyAttribute namespace="##any" processContents="lax"/>
+  </xs:complexType>
+</xs:schema>

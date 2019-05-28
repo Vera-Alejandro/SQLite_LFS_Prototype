@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Dapper;
+//using Dapper;
+using Interstates.Control.Database;
+using Interstates.Control.Database.SQLite3;
 using CommandLine;
 using System.Text;
 using System.Data;
@@ -15,6 +17,7 @@ namespace SQLite_LFS_Prototype
     {
         public SQLiteConnection FileConnection { get; set; }
         public FormatType CommandAction { get; set; }
+        public string constr { get; set; }
 
         private readonly string _filePath;
         
@@ -25,6 +28,8 @@ namespace SQLite_LFS_Prototype
         public Database(string FilePath)
         {
             _filePath = FilePath;
+            constr = $"Data Source={_filePath};Version=3;";
+
 
             if (!(File.Exists(_filePath)))
             {
@@ -33,7 +38,7 @@ namespace SQLite_LFS_Prototype
             }
             
             //FileConnection = new SQLiteConnection($@"Data Source={_filePath}; Version=3;");
-            FileConnection = new SQLiteConnection($"Data Source={_filePath};Version=3;");
+            FileConnection = new SQLiteConnection(constr);
             CommandAction = FormatType.None;
         }
 
@@ -270,6 +275,11 @@ namespace SQLite_LFS_Prototype
         public void TestInsert(RowData rowData, string table)
         {
             string _command = $@"INSERT INTO {table} (Name, Data, Extension) VALUES (@Name, @Data, @Extension); SELECT last_insert_rowid();";
+
+            DatabaseProfile profile = new DatabaseProfile("sqlite", constr, "SQLite3");
+            
+
+
 
             rowData.Id = FileConnection.Query<int>(_command, rowData).First();
         }

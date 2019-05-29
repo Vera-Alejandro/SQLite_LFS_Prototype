@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-//using Dapper;
+using Dapper;
 using Interstates.Control.Database;
 using Interstates.Control.Database.SQLite3;
 using CommandLine;
 using System.Text;
 using System.Data;
+using System.Data.Common;
 using System.Data.SQLite;
 using System.IO;
 using SQLite_LFS_Prototype.Model;
@@ -297,17 +298,51 @@ namespace SQLite_LFS_Prototype
         {
             string _command = $"SELECT * FROM {table};";
 
+            DataSet data = new DataSet();
+            DbCommand command = FileConnection.CreateCommand();
+            DatabaseProfile profile = new DatabaseProfile("sqlite", constr, "SQLite 3");
+            SQLiteQuery query = new SQLiteQuery(profile);
+
+            command.CommandText = _command;
+            command.CommandType = CommandType.Text;
+            data = query.Execute(command);
+
             Console.Clear();
             Console.WriteLine($"\n\n\n\nData from {table}\n");
 
             if(table != "ExtensionInfo")
             {
-                PrintTable(FileConnection.Query<RowData>(_command).ToList());
+                List<ExtensionInfo> extData = new List<ExtensionInfo>();
+
+                foreach (DataRow row in data.Tables[0].Rows)
+                {
+                    extData.Add(new ExtensionInfo()
+                    {
+                        Id = (Int64)row[0],
+                        Extension = (string)row[1]
+                    });
+                }
+
+                PrintTable(extData);
             }
             else
             {
-                PrintTable(FileConnection.Query<ExtensionInfo>(_command).ToList());
+                List<RowData> rowData = new List<RowData>();
+
+                foreach (DataRow row in data.Tables[0].Rows)
+                {
+                    rowData.Add(new RowData()
+                    {
+                        Id = (Int64)row[0],
+                        Name = (string)row[1],
+                        Data = (string)row[2],
+                        ExtensionId = (Int64)row[3]
+                    });
+                }
+
+                PrintTable(rowData);
             }
+            
         }
 
         void PrintTable(List<RowData> data)
@@ -414,6 +449,60 @@ namespace SQLite_LFS_Prototype
                 return "Operation Failed";
             }
         }
+
+        public void SelectAll(string table)
+        {
+            string _command = $"SELECT * FROM {table};";
+
+            DataSet data = new DataSet();
+            DbCommand command = FileConnection.CreateCommand();
+            DatabaseProfile profile = new DatabaseProfile("sqlite", constr, "SQLite 3");
+            SQLiteQuery query = new SQLiteQuery(profile);
+
+            command.CommandText = _command;
+            command.CommandType = CommandType.Text;
+            data = query.Execute(command);
+
+            Console.Clear();
+            Console.WriteLine($"\n\n\n\nData from {table}\n");
+
+            if (table != "ExtensionInfo")
+            {
+                List<ExtensionInfo> extData = new List<ExtensionInfo>();
+
+                foreach (DataRow row in data.Tables[0].Rows)
+                {
+                    extData.Add(new ExtensionInfo()
+                    {
+                        Id = (Int64)row[0],
+                        Extension = (string)row[1]
+                    });
+                }
+
+                PrintTable(extData);
+            }
+            else
+            {
+                List<RowData> rowData = new List<RowData>();
+
+                foreach (DataRow row in data.Tables[0].Rows)
+                {
+                    rowData.Add(new RowData()
+                    {
+                        Id = (Int64)row[0],
+                        Name = (string)row[1],
+                        Data = (string)row[2],
+                        ExtensionId = (Int64)row[3]
+                    });
+                }
+
+                PrintTable(rowData);
+            }
+
+
+        }
+
+
 
         //support functions
         private string FormatList(List<string> fields, FormatType CommandType)

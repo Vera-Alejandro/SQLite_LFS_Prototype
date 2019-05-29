@@ -25,7 +25,6 @@ namespace SQLite_LFS_Prototype
 
 
             //variables
-            string tableName = args[1];
             bool _menuContinue = true;
             List<ExtensionInfo> extData = new List<ExtensionInfo>();
             List<RowData> selectedData = new List<RowData>();
@@ -125,14 +124,10 @@ namespace SQLite_LFS_Prototype
                         //Insert
                         case 1:
                             InsertMenu();
-                            Console.WriteLine("Insert Option Selected");
-                            Wait();
                             break;
                         //Delete
                         case 2:
                             DeleteMenu();
-                            Console.WriteLine("Delete Option Selected");
-                            Wait();
                             break;
                         //Show Table Data
                         case 3:
@@ -145,8 +140,7 @@ namespace SQLite_LFS_Prototype
                             break;
                         //Show Data
                         case 5:
-                            Console.WriteLine("Show Data Selected");
-                            Wait();
+                            sqlDatabase.SelectAll();
                             break;
                         //Exit
                         case 0:

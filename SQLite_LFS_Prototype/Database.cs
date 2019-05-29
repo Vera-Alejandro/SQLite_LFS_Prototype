@@ -4,7 +4,6 @@ using System.Linq;
 using Dapper;
 using Interstates.Control.Database;
 using Interstates.Control.Database.SQLite3;
-using CommandLine;
 using System.Data;
 using System.Data.Common;
 using System.Data.SQLite;
@@ -15,9 +14,9 @@ namespace SQLite_LFS_Prototype
 {
     public class Database
     {
-        public SQLiteConnection FileConnection { get; set; }
-        public FormatType CommandAction { get; set; }
-        public string constr { get; set; }
+        private SQLiteConnection FileConnection { get; set; }
+        private FormatType CommandAction { get; set; }
+        private string constr { get; set; }
 
         private readonly string _filePath;
 
@@ -179,9 +178,10 @@ namespace SQLite_LFS_Prototype
 
         public int InsertInto(string table, List<string> columns, List<string> values)
         {
+            int retValue = 0;
+
             string command = $"INSERT INTO {table}({FormatList(columns, FormatType.InsertFormat)}) VALUES ({FormatList(values, FormatType.All)});";
 
-            int retValue = 0;
             try
             {
                 SQLiteCommand insertCommand;
@@ -202,7 +202,6 @@ namespace SQLite_LFS_Prototype
 
         public int InsertInto(int Id, RowData data)
         {
-
             return -1;
         }
 
@@ -391,7 +390,6 @@ namespace SQLite_LFS_Prototype
 
         public void SelectAll(string table)
         {
-            int _newline;
             int _totalRows;
             int _rowChoice;
             bool _rowContinue;
@@ -444,14 +442,17 @@ namespace SQLite_LFS_Prototype
                 PrintTable(rowData);
             }
 
-
             do
             {
                 _rowContinue = false;
-                _newline = 0;
 
                 Console.WriteLine("\n\nTo view the data of a row select the Id. Press 0 to exit");
                 if (!int.TryParse(Console.ReadLine(), out _rowChoice)) { _rowChoice = -1; }
+                
+                if(_rowChoice == 0)
+                {
+                    return;
+                }
 
                 try
                 {
@@ -475,16 +476,18 @@ namespace SQLite_LFS_Prototype
                             Console.WriteLine($"\t\t\tName: {item.Name}\n");
                             Console.WriteLine($"\t\t\tData: \n\t\t\t{item.Data}\n");
                             Console.WriteLine($"\t\t\tExtensionId: {item.ExtensionId}\n");
+                            Console.WriteLine("\nPress Any Key To Continue...");
+                            Console.ReadKey();
                             return;
                         }
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     _rowContinue = true;
                     Console.Clear();
-                    Console.WriteLine("Please Enter a Valid Option");
+                    Console.WriteLine(ex.Message);
                     Console.WriteLine("Press Any Key To Continue...");
                     Console.ReadKey();
                 }
@@ -492,7 +495,15 @@ namespace SQLite_LFS_Prototype
             } while (_rowContinue);
         }
 
+        public void DeleteRow(int rowId)
+        {
+
+        }
+
+        //
         //support functions
+        //
+
         private string FormatList(List<string> fields, FormatType CommandType)
         {
             List<string> temp = new List<string>();
@@ -536,7 +547,10 @@ namespace SQLite_LFS_Prototype
             return _retValue;
         }
 
+        //
         //enums
+        //
+
         public enum FormatType
         {
             All,

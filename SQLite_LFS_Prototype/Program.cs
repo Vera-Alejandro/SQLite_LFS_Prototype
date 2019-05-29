@@ -22,15 +22,22 @@ namespace SQLite_LFS_Prototype
             List<RowData> selectedData = new List<RowData>();
             List<string> tables = new List<string>();
 
+            Options results = Parser.Default.ParseArguments<Options>(args)
+                .MapResult
+                (
+                    opt => opt, 
+                    error => throw new Exception("Failed to Parse Arguments."
+                ));
+
             //create database
-            Database sqlDatabase = new Database(args[0]);
+            Database sqlDatabase = new Database(results.FileLocation);
+
             //if connection failed exit program
             if(!(sqlDatabase.Connect()))
             {
                 Console.ReadKey();
                 return;
             }
-
 
             sqlDatabase.CreateTable();
 
@@ -39,47 +46,12 @@ namespace SQLite_LFS_Prototype
 
             Menu();
 
-            #region Graveyard
-            //graveyard
-
-            /*
-            string testTable = "FileTest";
-
-            List<string> columns = new List<string>
-            {
-                "Name TEXT",
-                "Data TEXT",
-                "Extension TEXT"
-            };
-            sqlDatabase.CreateTable(testTable, columns);
-
-            List<string> data1 = new List<string>
-            {
-                "'FirstFile.txt'",
-                "'this is the data'",
-                "'.txt'"
-            };
-
-            List<string> data2 = new List<string>
-            {
-                "'PhoneLogs.txt'",
-                "'someone called me at this number. today'",
-                "'.txt'"
-            };
-
-            sqlDatabase.InsertInto(testTable, columns, data1);
-
-            sqlDatabase.InsertInto(testTable, columns, data2);
-
-            sqlDatabase.SelectAll(testTable, columns);
-            */
-
-            #endregion
-
             sqlDatabase.Disconnect();
             Console.ReadKey();
             
+            //
             //Submethods
+            //
 
             void Menu()
             {
@@ -150,32 +122,91 @@ namespace SQLite_LFS_Prototype
 
                     void DeleteMenu()
                     {
+                        #region variables
 
+                        string _nameMenu;
+
+                        int _option;
+                        int _dashCount;
+                        int _deleteMenuChoice;
+
+                        bool _tableDataContinue;
+
+                        #endregion
+
+                        do
+                        {
+                            _option = 0;
+                            _tableDataContinue = false;
+
+                            #region Table Data Menu
+
+                            Console.Clear();
+                            Console.WriteLine("\n\n\n\n\n" +
+                            "\t\t\t\t_______________Delete Data Menu_______________\n" +
+                            "\t\t\t\t|--------------------------------------------|\n" +
+                            "\t\t\t\t|--------------------------------------------|");
+                            #region Dash Loop
+
+                            foreach (string table in tables)
+                            {
+                                _nameMenu = $"\t\t\t\t|------------{_option + 1} - {table}";
+                                Console.Write(_nameMenu);
+                                _dashCount = (49 - _nameMenu.Length);
+                                for (int i = 0; i < _dashCount; i++)
+                                {
+                                    Console.Write("-");
+                                }
+                                Console.WriteLine("|");
+                                _option++;
+                            }
+
+                            #endregion
+                            Console.Write("\t\t\t\t|--------------------------------------------|\n" +
+                            "\t\t\t\t|------------0 - Back------------------------|\n" +
+                            "\t\t\t\t|--------------------------------------------|\n" +
+                            "\t\t\t\t|____________________________________________|" +
+                            "\n\n\t\t\t\tWhat table would you like to remove from? ");
+
+                            #endregion
+
+                            if(!int.TryParse(Console.ReadLine(), out _deleteMenuChoice)) { _deleteMenuChoice = -1; }
+
+                            try
+                            {
+                                if (_deleteMenuChoice == 0)
+                                {
+                                    return;
+                                }
+                                sqlDatabase.SelectAll(tables[_deleteMenuChoice - 1]);
+                            }
+                            catch (Exception ex)
+                            {
+                                _tableDataContinue = true;
+                                Console.Clear();
+                                Console.WriteLine("Please Enter a Valid Option");
+                                throw;
+                            }
+
+                        } while (_tableDataContinue);
                     }
 
                     void TableDataMenu()
                     {
                         #region local Variables
                         int _tableDataChoice;
-                        int _rowChoice;
                         int _dashCount;
                         int _option;
 
-                        bool _rowContinue;
                         bool _tableDataContinue;
                         
-
                         string _nameMenu;
                         #endregion
 
                         do
                         {
-                            #region declare variables
-
                             _option = 0;
                             _tableDataContinue = false;
-                            
-                            #endregion
 
                             #region Table Data Menu
 
@@ -212,6 +243,10 @@ namespace SQLite_LFS_Prototype
 
                             try
                             {
+                                if(_tableDataChoice == 0)
+                                {
+                                    return;
+                                }
                                 sqlDatabase.SelectAll(tables[_tableDataChoice - 1]);
                             }
                             catch (Exception)
@@ -223,8 +258,6 @@ namespace SQLite_LFS_Prototype
                             }
 
                         } while (_tableDataContinue);
-
-                        Wait();
                     }
 
                     void Wait()
@@ -238,9 +271,6 @@ namespace SQLite_LFS_Prototype
 
         public class Options
         {
-            [Option('v', "verbose", Required = false, HelpText ="set output to verbose messages.")]
-            public bool Verbose { get; set; }
-
             [Option('f', "filelocation", Required = true, HelpText = "enter the file location of the SQLite Db File.")]
             public string FileLocation { get; set; }
         }

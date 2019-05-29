@@ -14,16 +14,8 @@ namespace SQLite_LFS_Prototype
 {
     class Program
     {
-        
         static void Main(string[] args)
         {
-
-
-
-
-
-
-
             //variables
             bool _menuContinue = true;
             List<ExtensionInfo> extData = new List<ExtensionInfo>();
@@ -105,14 +97,12 @@ namespace SQLite_LFS_Prototype
                         "\t\t\t\t|------------2 - Delete----------------------|\n" +
                         "\t\t\t\t|------------3 - Show Table Data-------------|\n" +
                         "\t\t\t\t|------------4 - Move Data-------------------|\n" +
-                        "\t\t\t\t|------------5 - Show Data-------------------|\n" +
                         "\t\t\t\t|--------------------------------------------|\n" +
                         "\t\t\t\t|------------0 - Exit------------------------|\n" +
                         "\t\t\t\t|--------------------------------------------|\n" +
                         "\t\t\t\t|____________________________________________|" +
                         "\n\n\t\t\t\tWhat would you like to do? ");
                     #endregion
-
 
                     if(!(int.TryParse(Console.ReadLine().ToString(), out _mainChoice)))
                     {
@@ -137,10 +127,6 @@ namespace SQLite_LFS_Prototype
                         case 4:
                             Console.WriteLine("Move Data Selected");
                             Wait();
-                            break;
-                        //Show Data
-                        case 5:
-                            sqlDatabase.SelectAll();
                             break;
                         //Exit
                         case 0:
@@ -170,11 +156,14 @@ namespace SQLite_LFS_Prototype
                     void TableDataMenu()
                     {
                         #region local Variables
-                        int _tableDataChoice = -1;
+                        int _tableDataChoice;
+                        int _rowChoice;
                         int _dashCount;
                         int _option;
 
+                        bool _rowContinue;
                         bool _tableDataContinue;
+                        
 
                         string _nameMenu;
                         #endregion
@@ -234,6 +223,8 @@ namespace SQLite_LFS_Prototype
                             }
 
                         } while (_tableDataContinue);
+
+                        Wait();
                     }
 
                     void Wait()
@@ -245,9 +236,14 @@ namespace SQLite_LFS_Prototype
             }
         }
 
-        
+        public class Options
+        {
+            [Option('v', "verbose", Required = false, HelpText ="set output to verbose messages.")]
+            public bool Verbose { get; set; }
 
-      
+            [Option('f', "filelocation", Required = true, HelpText = "enter the file location of the SQLite Db File.")]
+            public string FileLocation { get; set; }
+        }
     }
 }           
 

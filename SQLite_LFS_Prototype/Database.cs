@@ -5,7 +5,6 @@ using Dapper;
 using Interstates.Control.Database;
 using Interstates.Control.Database.SQLite3;
 using CommandLine;
-using System.Text;
 using System.Data;
 using System.Data.Common;
 using System.Data.SQLite;
@@ -21,9 +20,6 @@ namespace SQLite_LFS_Prototype
         public string constr { get; set; }
 
         private readonly string _filePath;
-        
-        
-
 
         //constructor
         public Database(string FilePath)
@@ -42,7 +38,6 @@ namespace SQLite_LFS_Prototype
             FileConnection = new SQLiteConnection(constr);
             CommandAction = FormatType.None;
         }
-
 
         //Functions
         public bool Connect()
@@ -78,7 +73,6 @@ namespace SQLite_LFS_Prototype
         //might not need this
         //manual create table command
         //this might just be used to create the Pending, Proccessed, and Manual tables if they don't exist
-
         public string CreateTable(string tableName, List<string> columns)
         {
             string command = $"CREATE TABLE IF NOT EXISTS {tableName} ({FormatList(columns, FormatType.All)})";
@@ -100,8 +94,7 @@ namespace SQLite_LFS_Prototype
 
         }
 
-        ///default constructor of all the nessesary tables
-        ///
+        //default constructor of all the nessesary tables
         public string CreateTable()
         {
             #region SQLite Create Tables Command (Old)
@@ -213,6 +206,7 @@ namespace SQLite_LFS_Prototype
             return -1;
         }
 
+        //this is using the reader
         public void SelectAll(string table, List<string> columns)
         {
             #region Variables
@@ -279,9 +273,6 @@ namespace SQLite_LFS_Prototype
 
             DatabaseProfile profile = new DatabaseProfile("sqlite", constr, "SQLite3");
             
-
-
-
             rowData.Id = FileConnection.Query<int>(_command, rowData).First();
         }
 
@@ -293,61 +284,10 @@ namespace SQLite_LFS_Prototype
             return _retValue;
         }
 
-        //this grabs everything in the Table and converts it to a list<filedata>
-        public void SelectAll(string table)
-        {
-            string _command = $"SELECT * FROM {table};";
-
-            DataSet data = new DataSet();
-            DbCommand command = FileConnection.CreateCommand();
-            DatabaseProfile profile = new DatabaseProfile("sqlite", constr, "SQLite 3");
-            SQLiteQuery query = new SQLiteQuery(profile);
-
-            command.CommandText = _command;
-            command.CommandType = CommandType.Text;
-            data = query.Execute(command);
-
-            Console.Clear();
-            Console.WriteLine($"\n\n\n\nData from {table}\n");
-
-            if(table != "ExtensionInfo")
-            {
-                List<ExtensionInfo> extData = new List<ExtensionInfo>();
-
-                foreach (DataRow row in data.Tables[0].Rows)
-                {
-                    extData.Add(new ExtensionInfo()
-                    {
-                        Id = (Int64)row[0],
-                        Extension = (string)row[1]
-                    });
-                }
-
-                PrintTable(extData);
-            }
-            else
-            {
-                List<RowData> rowData = new List<RowData>();
-
-                foreach (DataRow row in data.Tables[0].Rows)
-                {
-                    rowData.Add(new RowData()
-                    {
-                        Id = (Int64)row[0],
-                        Name = (string)row[1],
-                        Data = (string)row[2],
-                        ExtensionId = (Int64)row[3]
-                    });
-                }
-
-                PrintTable(rowData);
-            }
-            
-        }
+        #endregion
 
         void PrintTable(List<RowData> data)
         {
-
             int dataTabs = 0;
             int nameTabs = 0;
             int valuesDataTab = 0;
@@ -381,7 +321,7 @@ namespace SQLite_LFS_Prototype
 
             Console.Write("Data");
 
-            for (int i = 0; i < dataTabs; i++)
+            for (int i = 0; i < (dataTabs % 8); i++)
             {
                 Console.Write("\t");
             }
@@ -400,7 +340,14 @@ namespace SQLite_LFS_Prototype
                     Console.Write("\t");
                 }
 
-                Console.Write($"{value.Data}");
+                if(value.Data.Length > 60)
+                { 
+                    Console.Write($"{value.Data.Remove(60)}");
+                }
+                else
+                {
+                    Console.Write($"{value.Data}");
+                }
 
                 for (int k = 0; k < valuesDataTab; k++)
                 {
@@ -409,9 +356,6 @@ namespace SQLite_LFS_Prototype
 
                 Console.WriteLine(value.ExtensionId);
             }
-
-            Console.WriteLine("\n\nPress Any Key To Continue...");
-            Console.ReadKey();
         }
 
         void PrintTable(List<ExtensionInfo> data)
@@ -423,12 +367,7 @@ namespace SQLite_LFS_Prototype
             {
                 Console.WriteLine($"{value.Id.ToString()}\t{value.Extension}");
             }
-
-            Console.WriteLine("\n\nPress Any Key To Continue...");
-            Console.ReadKey();
         }
-
-        #endregion
 
         public string DropTable (string table)
         {
@@ -452,7 +391,14 @@ namespace SQLite_LFS_Prototype
 
         public void SelectAll(string table)
         {
+            int _newline;
+            int _totalRows;
+            int _rowChoice;
+            bool _rowContinue;
             string _command = $"SELECT * FROM {table};";
+
+            List<ExtensionInfo> extData = new List<ExtensionInfo>();
+            List<RowData> rowData = new List<RowData>();
 
             DataSet data = new DataSet();
             DbCommand command = FileConnection.CreateCommand();
@@ -462,13 +408,13 @@ namespace SQLite_LFS_Prototype
             command.CommandText = _command;
             command.CommandType = CommandType.Text;
             data = query.Execute(command);
+            _totalRows = data.Tables[0].Rows.Count;
 
             Console.Clear();
             Console.WriteLine($"\n\n\n\nData from {table}\n");
 
-            if (table != "ExtensionInfo")
+            if (table == "ExtensionInfo")
             {
-                List<ExtensionInfo> extData = new List<ExtensionInfo>();
 
                 foreach (DataRow row in data.Tables[0].Rows)
                 {
@@ -483,7 +429,6 @@ namespace SQLite_LFS_Prototype
             }
             else
             {
-                List<RowData> rowData = new List<RowData>();
 
                 foreach (DataRow row in data.Tables[0].Rows)
                 {
@@ -500,9 +445,52 @@ namespace SQLite_LFS_Prototype
             }
 
 
+            do
+            {
+                _rowContinue = false;
+                _newline = 0;
+
+                Console.WriteLine("\n\nTo view the data of a row select the Id. Press 0 to exit");
+                if (!int.TryParse(Console.ReadLine(), out _rowChoice)) { _rowChoice = -1; }
+
+                try
+                {
+                    if(_rowChoice > _totalRows)
+                    {
+                        _rowContinue = true;
+                        
+                        Console.Clear();
+                        Console.WriteLine("Please Enter a Valid Option");
+                        Console.WriteLine("Press Any Key To Continue...");
+                        Console.ReadKey();
+                    }
+
+                    foreach (RowData item in rowData)
+                    {
+                        if (item.Id == _rowChoice)
+                        {
+                            Console.Clear();
+                            Console.WriteLine($"\n\n\n\n\n\t\t\t\t\tSelected {item.Name}\n\n");
+                            Console.WriteLine($"\t\t\tID: {item.Id}\n");
+                            Console.WriteLine($"\t\t\tName: {item.Name}\n");
+                            Console.WriteLine($"\t\t\tData: \n\t\t\t{item.Data}\n");
+                            Console.WriteLine($"\t\t\tExtensionId: {item.ExtensionId}\n");
+                            return;
+                        }
+                    }
+
+                }
+                catch (Exception)
+                {
+                    _rowContinue = true;
+                    Console.Clear();
+                    Console.WriteLine("Please Enter a Valid Option");
+                    Console.WriteLine("Press Any Key To Continue...");
+                    Console.ReadKey();
+                }
+
+            } while (_rowContinue);
         }
-
-
 
         //support functions
         private string FormatList(List<string> fields, FormatType CommandType)

@@ -41,7 +41,7 @@ namespace SQLite_LFS_Prototype
         //Functions
         public bool Connect()
         {
-            if(File.Exists(_filePath) && FileConnection.State != System.Data.ConnectionState.Open)
+            if(File.Exists(_filePath) && FileConnection.State != ConnectionState.Open)
             {
                 FileConnection.Open();
                 Console.WriteLine("File connection made.");
@@ -56,7 +56,7 @@ namespace SQLite_LFS_Prototype
 
         public bool Disconnect()
         {
-            if(File.Exists(_filePath) && FileConnection.State != System.Data.ConnectionState.Closed)
+            if(File.Exists(_filePath) && FileConnection.State != ConnectionState.Closed)
             {
                 FileConnection.Close();
                 Console.WriteLine("\t\t\tDatabase successfully closed.");
@@ -275,6 +275,12 @@ namespace SQLite_LFS_Prototype
             rowData.Id = FileConnection.Query<int>(_command, rowData).First();
         }
 
+        /// <summary>
+        /// This one uses Dapper
+        /// </summary>
+        /// <param name="Id"></param>
+        /// <param name="table"></param>
+        /// <returns></returns>
         public RowData SelectData(int Id, string table)
         {
             string _command = $@"SELECT Id, Name, Data, ExtensionId FROM {table} WHERE Id = @id";
@@ -310,6 +316,7 @@ namespace SQLite_LFS_Prototype
             nameTabs = (nameTabs / 8) + 1;
 
             //printing stuff
+            Console.Clear();
 
             Console.Write("ID\tName");
 
@@ -388,15 +395,15 @@ namespace SQLite_LFS_Prototype
             }
         }
 
-        public void SelectAll(string table)
+        
+
+        public DataSet SelectAll(string table)
         {
             int _totalRows;
-            int _rowChoice;
-            bool _rowContinue;
             string _command = $"SELECT * FROM {table};";
 
             List<ExtensionInfo> extData = new List<ExtensionInfo>();
-            List<RowData> rowData = new List<RowData>();
+            List<RowData> _rowData = new List<RowData>();
 
             DataSet data = new DataSet();
             DbCommand command = FileConnection.CreateCommand();
@@ -422,15 +429,13 @@ namespace SQLite_LFS_Prototype
                         Extension = (string)row[1]
                     });
                 }
-
-                PrintTable(extData);
             }
             else
             {
 
                 foreach (DataRow row in data.Tables[0].Rows)
                 {
-                    rowData.Add(new RowData()
+                    _rowData.Add(new RowData()
                     {
                         Id = (Int64)row[0],
                         Name = (string)row[1],
@@ -438,35 +443,175 @@ namespace SQLite_LFS_Prototype
                         ExtensionId = (Int64)row[3]
                     });
                 }
+            }
+            
+            return data;
+        }
 
-                PrintTable(rowData);
+        public void DeleteRow(string table)
+        {
+            #region variables 
+
+            int _rowChoice;
+            int _totalRows;
+            int _rowsAffected;
+
+            bool _rowContinue = true;
+
+
+            DataSet data = SelectAll(table);
+
+            List<RowData> _rowData = new List<RowData>();
+            List<ExtensionInfo> _extInfo = new List<ExtensionInfo>();
+
+            _totalRows = data.Tables[0].Rows.Count;
+            #endregion
+
+            //sets the data to the correst List
+            if (table == "ExtensionInfo")
+            {
+                foreach (DataRow row in data.Tables[0].Rows)
+                {
+                    _extInfo.Add(new ExtensionInfo()
+                    {
+                        Id = (Int64)row[0],
+                        Extension = (string)row[1]
+                    });
+                }
+            }
+            else
+            {
+                foreach (DataRow row in data.Tables[0].Rows)
+                {
+                    _rowData.Add(new RowData()
+                    {
+                        Id = (Int64)row[0],
+                        Name = (string)row[1],
+                        Data = (string)row[2],
+                        ExtensionId = (Int64)row[3]
+                    });
+                }
             }
 
             do
             {
-                _rowContinue = false;
+                string _deleteCmd = $"DELETE FROM {table} WHERE Id = ";
 
-                Console.WriteLine("\n\nTo view the data of a row select the Id. Press 0 to exit");
+                PrintTable(_rowData);
+
+                Console.WriteLine("\n\nWhat Row would you like to remove? Press 0 to exit.");
                 if (!int.TryParse(Console.ReadLine(), out _rowChoice)) { _rowChoice = -1; }
-                
-                if(_rowChoice == 0)
+
+                if (_rowChoice == 0)
                 {
-                    return;
+                    _rowContinue = false;
                 }
 
                 try
                 {
-                    if(_rowChoice > _totalRows)
+                    if (_rowChoice > _totalRows)
                     {
                         _rowContinue = true;
-                        
+
                         Console.Clear();
                         Console.WriteLine("Please Enter a Valid Option");
                         Console.WriteLine("Press Any Key To Continue...");
                         Console.ReadKey();
                     }
 
-                    foreach (RowData item in rowData)
+                    _deleteCmd += $"{_rowChoice};";
+                    SQLiteCommand _deleteRow;
+                    using (_deleteRow = new SQLiteCommand(_deleteCmd, FileConnection))
+                    {
+                        _rowsAffected = _deleteRow.ExecuteNonQuery();
+                        _rowData.RemoveAt(_rowChoice - 1);
+                        _totalRows--;
+                        Console.WriteLine($"Executing Command: {_rowsAffected} row(s) effected.");
+                        Console.WriteLine("Press Any Key To Continue...");
+                        Console.ReadKey();
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    Console.Clear();
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Press Any Key To Continue...");
+                    Console.ReadKey();
+                }
+
+            } while (_rowContinue);
+        }
+
+        public void SelectRow(string table)
+        {
+            #region variables 
+
+            int _rowChoice;
+            int _totalRows;
+
+            bool _rowContinue;
+
+            DataSet data = SelectAll(table);
+
+            List<RowData> _rowData = new List<RowData>();
+            List<ExtensionInfo> _extInfo = new List<ExtensionInfo>();
+
+            #endregion
+
+            if (table == "ExtensionInfo")
+            {
+
+                foreach (DataRow row in data.Tables[0].Rows)
+                {
+                    _extInfo.Add(new ExtensionInfo()
+                    {
+                        Id = (Int64)row[0],
+                        Extension = (string)row[1]
+                    });
+                }
+            }
+            else
+            {
+
+                foreach (DataRow row in data.Tables[0].Rows)
+                {
+                    _rowData.Add(new RowData()
+                    {
+                        Id = (Int64)row[0],
+                        Name = (string)row[1],
+                        Data = (string)row[2],
+                        ExtensionId = (Int64)row[3]
+                    });
+                }
+            }
+
+            do
+            {
+                _rowContinue = false;
+                _totalRows = data.Tables[0].Rows.Count;
+
+                Console.WriteLine("\n\nTo view the data of a row select the Id. Press 0 to exit");
+                if (!int.TryParse(Console.ReadLine(), out _rowChoice)) { _rowChoice = -1; }
+
+                if (_rowChoice == 0)
+                {
+                    return;
+                }
+
+                try
+                {
+                    if (_rowChoice > _totalRows)
+                    {
+                        _rowContinue = true;
+
+                        Console.Clear();
+                        Console.WriteLine("Please Enter a Valid Option");
+                        Console.WriteLine("Press Any Key To Continue...");
+                        Console.ReadKey();
+                    }
+
+                    foreach (RowData item in _rowData)
                     {
                         if (item.Id == _rowChoice)
                         {
@@ -494,16 +639,13 @@ namespace SQLite_LFS_Prototype
 
             } while (_rowContinue);
         }
+    
 
-        public void DeleteRow(int rowId)
-        {
-
-        }
+        #region Support Functions
 
         //
         //support functions
         //
-
         private string FormatList(List<string> fields, FormatType CommandType)
         {
             List<string> temp = new List<string>();
@@ -547,6 +689,9 @@ namespace SQLite_LFS_Prototype
             return _retValue;
         }
 
+        #endregion
+
+        #region Enums
         //
         //enums
         //
@@ -557,5 +702,7 @@ namespace SQLite_LFS_Prototype
             InsertFormat,
             None
         }
+
+        #endregion
     }
 }

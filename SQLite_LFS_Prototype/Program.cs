@@ -178,7 +178,7 @@ namespace SQLite_LFS_Prototype
                                 {
                                     return;
                                 }
-                                sqlDatabase.SelectAll(tables[_deleteMenuChoice - 1]);
+                                sqlDatabase.DeleteRow(tables[_deleteMenuChoice - 1]);
                             }
                             catch (Exception ex)
                             {
@@ -247,7 +247,7 @@ namespace SQLite_LFS_Prototype
                                 {
                                     return;
                                 }
-                                sqlDatabase.SelectAll(tables[_tableDataChoice - 1]);
+                                sqlDatabase.SelectRow(tables[_tableDataChoice - 1]);
                             }
                             catch (Exception)
                             {
@@ -275,5 +275,4 @@ namespace SQLite_LFS_Prototype
             public string FileLocation { get; set; }
         }
     }
-}           
-
+}

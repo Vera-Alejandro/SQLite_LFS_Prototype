@@ -60,7 +60,7 @@ namespace SQLite_LFS_Prototype
                     int _mainChoice = -1;
                     Console.Clear();
 
-                    #region Menu Screen
+                    #region Main Menu Screen
                     Console.Write("\n\n\n\n\n" +
                         "\t\t\t\t_________SQlite LFS Proof of Concept__________\n" +
                         "\t\t\t\t|--------------------------------------------|\n" +
@@ -97,8 +97,7 @@ namespace SQLite_LFS_Prototype
                             break;
                         //Move Data
                         case 4:
-                            Console.WriteLine("Move Data Selected");
-                            Wait();
+                            MoveDataMenu();
                             break;
                         //Exit
                         case 0:
@@ -124,10 +123,14 @@ namespace SQLite_LFS_Prototype
                         {
                             _tableDataContinue = false;
 
+                            #region Insert Data Menu
+
                             Console.Clear();
                             Console.WriteLine("\n\n\n\n\n" +
                                         "\t\t\t\t_______________Insert Data Menu_______________");
                             PrintMenu();
+
+                            #endregion
 
                             if (!int.TryParse(Console.ReadLine(), out _insertMenuChoice)) { _insertMenuChoice = -1; }
 
@@ -159,7 +162,7 @@ namespace SQLite_LFS_Prototype
                         {
                             _tableDataContinue = false;
 
-                            #region Table Data Menu
+                            #region Delete Data Menu
 
                             Console.Clear();
                             Console.WriteLine("\n\n\n\n\n" +
@@ -203,6 +206,45 @@ namespace SQLite_LFS_Prototype
                             Console.Clear();
                             Console.WriteLine("\n\n\n\n\n" +
                             "\t\t\t\t_______________Table Data Menu________________");
+                            PrintMenu();
+
+                            #endregion
+
+                            if (!int.TryParse(Console.ReadLine(), out _tableDataChoice)) { _tableDataChoice = -1; }
+
+                            try
+                            {
+                                if (_tableDataChoice == 0)
+                                {
+                                    return;
+                                }
+                                sqlDatabase.SelectRow(tables[_tableDataChoice - 1]);
+                            }
+                            catch (Exception)
+                            {
+                                _tableDataContinue = true;
+                                Console.Clear();
+                                Console.WriteLine("Please Enter a Valid Option");
+                                Wait();
+                            }
+
+                        } while (_tableDataContinue);
+                    }
+
+                    void MoveDataMenu()
+                    {
+                        int _tableDataChoice;
+                        bool _tableDataContinue;
+
+                        do
+                        {
+                            _tableDataContinue = false;
+
+                            #region Move Data Menu
+
+                            Console.Clear();
+                            Console.WriteLine("\n\n\n\n\n" +
+                            "\t\t\t\t________________Move Data Menu________________");
                             PrintMenu();
 
                             #endregion

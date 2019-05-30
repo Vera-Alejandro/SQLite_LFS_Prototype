@@ -246,7 +246,7 @@ namespace SQLite_LFS_Prototype
                             Console.WriteLine("\n\n\n\n\n" +
                             "\t\t\t\t________________Move Data Menu________________");
                             PrintMenu();
-
+                            Console.Write("\n\t\t\t\tSelect the Primary Table: ");
                             #endregion
 
                             if (!int.TryParse(Console.ReadLine(), out _tableDataChoice)) { _tableDataChoice = -1; }
@@ -257,7 +257,7 @@ namespace SQLite_LFS_Prototype
                                 {
                                     return;
                                 }
-                                sqlDatabase.SelectRow(tables[_tableDataChoice - 1]);
+                                sqlDatabase.MoveData(tables[_tableDataChoice - 1]);
                             }
                             catch (Exception)
                             {
@@ -300,11 +300,10 @@ namespace SQLite_LFS_Prototype
                         }
 
                         #endregion
-                        Console.Write("\t\t\t\t|--------------------------------------------|\n" +
+                        Console.WriteLine("\t\t\t\t|--------------------------------------------|\n" +
                                     "\t\t\t\t|------------0 - Back------------------------|\n" +
                                     "\t\t\t\t|--------------------------------------------|\n" +
-                                    "\t\t\t\t|____________________________________________|" +
-                                    "\n\n\t\t\t\tWhat table would you like to insert into? ");
+                                    "\t\t\t\t|____________________________________________|");
                     }
                 }
             }

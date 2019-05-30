@@ -667,7 +667,125 @@ namespace SQLite_LFS_Prototype
 
             } while (_rowContinue);
         }
-    
+
+        public void MoveData(string PrimaryTable)
+        {
+            int _secondaryChoice;
+
+            DataSet data = new DataSet();
+            List<RowData> rows = new List<RowData>();
+            List<string> tables = new List<string>();
+
+            data = GrabData(PrimaryTable);
+            tables = GetTables();
+
+            foreach (DataRow item in data.Tables[0].Rows)
+            {
+                rows.Add(new RowData()
+                {
+                    Name = (string)item.ItemArray[1],
+                    Data = (string)item.ItemArray[2],
+                    ExtensionId = (Int64)item.ItemArray[3]
+                });
+            }
+
+            do
+            {
+                #region Secondary Menu
+
+                #region Menu Variables
+                int _dashCount;
+                int _option = 0;
+
+                string _nameMenu;
+                #endregion
+
+                Console.Clear();
+                Console.WriteLine("\n\n\n\n\n" +
+                            "\t\t\t\t________________Move Data Menu________________\n"+
+                            "\t\t\t\t|--------------------------------------------|\n" +
+                            "\t\t\t\t|--------------------------------------------|");
+                #region Dash Loop
+
+                foreach (string table in tables)
+                {
+                    if(table == PrimaryTable)
+                    {
+                        _nameMenu = $"\t\t\t\t|---Primary--{_option + 1} - {table}";
+                    }
+                    else
+                    {
+                        _nameMenu = $"\t\t\t\t|------------{_option + 1} - {table}";
+                    }
+
+                    Console.Write(_nameMenu);
+                    _dashCount = (49 - _nameMenu.Length);
+                    for (int i = 0; i < _dashCount; i++) { Console.Write("-"); }
+                    Console.WriteLine("|");
+                    _option++;
+                }
+
+                #endregion
+                Console.Write("\t\t\t\t|--------------------------------------------|\n" +
+                            "\t\t\t\t|------------0 - Back------------------------|\n" +
+                            "\t\t\t\t|--------------------------------------------|\n" +
+                            "\t\t\t\t|____________________________________________|\n" +
+                            "\t\t\t\tSelect the Secondary Table: ");
+                
+                #endregion
+
+                if(!int.TryParse(Console.ReadLine(), out _secondaryChoice)) { _secondaryChoice = -1; }
+
+                try
+                {
+                    if (_secondaryChoice == 0)
+                    {
+                        return;
+                    }
+
+                    if (tables[_secondaryChoice - 1]  != PrimaryTable)
+                    {
+                        MoveToSecondary(tables[_secondaryChoice - 1]);
+                        Console.WriteLine("\t\t\t\tMove Succsessful.");
+                        Console.ReadKey();
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Press Any Key to Continue...");
+                    Console.ReadKey();
+                }
+
+            } while (true);
+
+            //
+            //Submethods
+            //
+
+            void MoveToSecondary(string SecondaryTable)
+            {
+                string _cmd = $"INSERT INTO {SecondaryTable} (Name, Data, ExtensionId) VALUES (@Name, @Data, @ExtensionId);";
+                int _rowsAffected = 0;
+
+                SQLiteCommand insertCommand;
+
+                foreach (RowData row in rows)
+                {
+                    using (insertCommand = new SQLiteCommand(_cmd, FileConnection))
+                    {
+                        insertCommand.Parameters.Add(new SQLiteParameter("@Name", row.Name));
+                        insertCommand.Parameters.Add(new SQLiteParameter("@Data", row.Data));
+                        insertCommand.Parameters.Add(new SQLiteParameter("@ExtensionId", row.ExtensionId));
+
+                        _rowsAffected += insertCommand.ExecuteNonQuery();
+                    }
+                }
+
+                Console.WriteLine($"\n\n\t\t\t\tCommand Executed Successfully: {_rowsAffected} row(s) affected.");
+            }
+        }
 
         #region Support Functions
 

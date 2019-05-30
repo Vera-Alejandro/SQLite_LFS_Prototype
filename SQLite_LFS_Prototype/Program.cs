@@ -25,7 +25,7 @@ namespace SQLite_LFS_Prototype
             Options results = Parser.Default.ParseArguments<Options>(args)
                 .MapResult
                 (
-                    opt => opt, 
+                    opt => opt,
                     error => throw new Exception("Failed to Parse Arguments."
                 ));
 
@@ -33,7 +33,7 @@ namespace SQLite_LFS_Prototype
             Database sqlDatabase = new Database(results.FileLocation);
 
             //if connection failed exit program
-            if(!(sqlDatabase.Connect()))
+            if (!(sqlDatabase.Connect()))
             {
                 Console.ReadKey();
                 return;
@@ -48,7 +48,7 @@ namespace SQLite_LFS_Prototype
 
             sqlDatabase.Disconnect();
             Console.ReadKey();
-            
+
             //
             //Submethods
             //
@@ -76,7 +76,7 @@ namespace SQLite_LFS_Prototype
                         "\n\n\t\t\t\tWhat would you like to do? ");
                     #endregion
 
-                    if(!(int.TryParse(Console.ReadLine().ToString(), out _mainChoice)))
+                    if (!(int.TryParse(Console.ReadLine().ToString(), out _mainChoice)))
                     {
                         _mainChoice = -1;
                     }
@@ -117,60 +117,58 @@ namespace SQLite_LFS_Prototype
 
                     void InsertMenu()
                     {
+                        int _insertMenuChoice;
+                        bool _tableDataContinue;
 
+                        do
+                        {
+                            _tableDataContinue = false;
+
+                            Console.Clear();
+                            Console.WriteLine("\n\n\n\n\n" +
+                                        "\t\t\t\t_______________Insert Data Menu_______________");
+                            PrintMenu();
+
+                            if (!int.TryParse(Console.ReadLine(), out _insertMenuChoice)) { _insertMenuChoice = -1; }
+
+                            try
+                            {
+                                if (_insertMenuChoice == 0)
+                                {
+                                    return;
+                                }
+                                sqlDatabase.InsertInto(tables[_insertMenuChoice - 1]);
+                            }
+                            catch (Exception)
+                            {
+                                _tableDataContinue = true;
+                                Console.Clear();
+                                Console.WriteLine("Please Enter a Valid Option");
+                                throw;
+                            }
+
+                        } while (_tableDataContinue);
                     }
 
                     void DeleteMenu()
                     {
-                        #region variables
-
-                        string _nameMenu;
-
-                        int _option;
-                        int _dashCount;
                         int _deleteMenuChoice;
-
                         bool _tableDataContinue;
-
-                        #endregion
 
                         do
                         {
-                            _option = 0;
                             _tableDataContinue = false;
 
                             #region Table Data Menu
 
                             Console.Clear();
                             Console.WriteLine("\n\n\n\n\n" +
-                            "\t\t\t\t_______________Delete Data Menu_______________\n" +
-                            "\t\t\t\t|--------------------------------------------|\n" +
-                            "\t\t\t\t|--------------------------------------------|");
-                            #region Dash Loop
-
-                            foreach (string table in tables)
-                            {
-                                _nameMenu = $"\t\t\t\t|------------{_option + 1} - {table}";
-                                Console.Write(_nameMenu);
-                                _dashCount = (49 - _nameMenu.Length);
-                                for (int i = 0; i < _dashCount; i++)
-                                {
-                                    Console.Write("-");
-                                }
-                                Console.WriteLine("|");
-                                _option++;
-                            }
-
-                            #endregion
-                            Console.Write("\t\t\t\t|--------------------------------------------|\n" +
-                            "\t\t\t\t|------------0 - Back------------------------|\n" +
-                            "\t\t\t\t|--------------------------------------------|\n" +
-                            "\t\t\t\t|____________________________________________|" +
-                            "\n\n\t\t\t\tWhat table would you like to remove from? ");
+                            "\t\t\t\t_______________Delete Data Menu_______________");
+                            PrintMenu();
 
                             #endregion
 
-                            if(!int.TryParse(Console.ReadLine(), out _deleteMenuChoice)) { _deleteMenuChoice = -1; }
+                            if (!int.TryParse(Console.ReadLine(), out _deleteMenuChoice)) { _deleteMenuChoice = -1; }
 
                             try
                             {
@@ -193,57 +191,27 @@ namespace SQLite_LFS_Prototype
 
                     void TableDataMenu()
                     {
-                        #region local Variables
                         int _tableDataChoice;
-                        int _dashCount;
-                        int _option;
-
                         bool _tableDataContinue;
-                        
-                        string _nameMenu;
-                        #endregion
 
                         do
                         {
-                            _option = 0;
                             _tableDataContinue = false;
 
                             #region Table Data Menu
 
                             Console.Clear();
                             Console.WriteLine("\n\n\n\n\n" +
-                            "\t\t\t\t_______________Table Data Menu________________\n" +
-                            "\t\t\t\t|--------------------------------------------|\n" +
-                            "\t\t\t\t|--------------------------------------------|");
-                            #region Dash Loop
+                            "\t\t\t\t_______________Table Data Menu________________");
+                            PrintMenu();
 
-                            foreach(string table in tables)
-                            {
-                                _nameMenu = $"\t\t\t\t|------------{_option + 1} - {table}";
-                                Console.Write(_nameMenu);
-                                _dashCount = (49 - _nameMenu.Length);
-                                for (int i = 0; i < _dashCount; i++)
-                                {
-                                    Console.Write("-");
-                                }
-                                Console.WriteLine("|");
-                                _option++;
-                            }
-
-                            #endregion
-                            Console.Write("\t\t\t\t|--------------------------------------------|\n" +
-                            "\t\t\t\t|------------0 - Back------------------------|\n" +
-                            "\t\t\t\t|--------------------------------------------|\n" +
-                            "\t\t\t\t|____________________________________________|" +
-                            "\n\n\t\t\t\tWhat would you like to do? ");
-                            
                             #endregion
 
                             if (!int.TryParse(Console.ReadLine(), out _tableDataChoice)) { _tableDataChoice = -1; }
 
                             try
                             {
-                                if(_tableDataChoice == 0)
+                                if (_tableDataChoice == 0)
                                 {
                                     return;
                                 }
@@ -265,9 +233,41 @@ namespace SQLite_LFS_Prototype
                         Console.WriteLine("Press Any Key To Continue...");
                         Console.ReadKey();
                     }
+
+                    void PrintMenu()
+                    {
+                        #region local Variables
+                        int _dashCount;
+                        int _option = 0;
+
+                        string _nameMenu;
+                        #endregion
+                        Console.WriteLine(
+                                    "\t\t\t\t|--------------------------------------------|\n" +
+                                    "\t\t\t\t|--------------------------------------------|");
+                        #region Dash Loop
+
+                        foreach (string table in tables)
+                        {
+                            _nameMenu = $"\t\t\t\t|------------{_option + 1} - {table}";
+                            Console.Write(_nameMenu);
+                            _dashCount = (49 - _nameMenu.Length);
+                            for (int i = 0; i < _dashCount; i++) { Console.Write("-"); }
+                            Console.WriteLine("|");
+                            _option++;
+                        }
+
+                        #endregion
+                        Console.Write("\t\t\t\t|--------------------------------------------|\n" +
+                                    "\t\t\t\t|------------0 - Back------------------------|\n" +
+                                    "\t\t\t\t|--------------------------------------------|\n" +
+                                    "\t\t\t\t|____________________________________________|" +
+                                    "\n\n\t\t\t\tWhat table would you like to insert into? ");
+                    }
                 }
             }
         }
+        
 
         public class Options
         {

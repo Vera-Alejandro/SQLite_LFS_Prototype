@@ -200,9 +200,46 @@ namespace SQLite_LFS_Prototype
             }
         }
 
-        public int InsertInto(int Id, RowData data)
+        public void InsertInto(string table)
         {
-            return -1;
+            string _insertCmd = $@"INSERT INTO {table} (Name, Data, ExtensionId) VALUES (@Name, @Data, @ExtensionId); SELECT last_insert_rowid();";
+            string _name;
+            string _data;
+            Int64 _extId;
+            int _rowsaffected;
+
+            Console.Write("\n\t\t\t\tEnter the Name of the new entry.\n\t\t\t\t");
+            _name = Console.ReadLine();
+            Console.WriteLine();
+
+            Console.Write("\t\t\t\tEnter the Data for this new entry\n\t\t\t\t");
+            _data = Console.ReadLine();
+            Console.WriteLine();
+
+            Console.Write("\t\t\t\tEnter the Extensino ID for this new entry\n\t\t\t\t");
+            _extId = Convert.ToInt64(Console.ReadLine());
+            Console.WriteLine();
+            
+            
+            try
+            {
+                using (SQLiteCommand Insert = new SQLiteCommand(_insertCmd, FileConnection))
+                {
+                    Insert.Parameters.Add(new SQLiteParameter("@Name", _name));
+                    Insert.Parameters.Add(new SQLiteParameter("@Data", _data));
+                    Insert.Parameters.Add(new SQLiteParameter("@ExtensionId", _extId));
+
+                    _rowsaffected = Insert.ExecuteNonQuery();
+                    Console.WriteLine($"\t\t\t\tCommand Executed Successfully: {_rowsaffected} row(s) affected.");
+                    Console.ReadKey();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                Console.ReadKey();
+                throw;
+            }
         }
 
         //this is using the reader

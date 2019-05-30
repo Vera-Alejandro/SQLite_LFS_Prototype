@@ -346,9 +346,9 @@ namespace SQLite_LFS_Prototype
                     Console.Write("\t");
                 }
 
-                if(value.Data.Length > 60)
+                if(value.Data.Length > 62)
                 { 
-                    Console.Write($"{value.Data.Remove(60)}");
+                    Console.Write($"{value.Data.Remove(62)}...");
                 }
                 else
                 {
@@ -361,17 +361,6 @@ namespace SQLite_LFS_Prototype
                 }
 
                 Console.WriteLine(value.ExtensionId);
-            }
-        }
-
-        void PrintTable(List<ExtensionInfo> data)
-        {
-            //printing stuff
-            Console.WriteLine("ID\tExtension");
-
-            foreach (ExtensionInfo value in data)
-            {
-                Console.WriteLine($"{value.Id.ToString()}\t{value.Extension}");
             }
         }
 
@@ -397,7 +386,7 @@ namespace SQLite_LFS_Prototype
 
         
 
-        public DataSet SelectAll(string table)
+        public DataSet GrabData(string table)
         {
             int _totalRows;
             string _command = $"SELECT * FROM {table};";
@@ -459,7 +448,7 @@ namespace SQLite_LFS_Prototype
             bool _rowContinue = true;
 
 
-            DataSet data = SelectAll(table);
+            DataSet data = GrabData(table);
 
             List<RowData> _rowData = new List<RowData>();
             List<ExtensionInfo> _extInfo = new List<ExtensionInfo>();
@@ -505,6 +494,7 @@ namespace SQLite_LFS_Prototype
                 if (_rowChoice == 0)
                 {
                     _rowContinue = false;
+                    break;
                 }
 
                 try
@@ -552,7 +542,7 @@ namespace SQLite_LFS_Prototype
 
             bool _rowContinue;
 
-            DataSet data = SelectAll(table);
+            DataSet data = GrabData(table);
 
             List<RowData> _rowData = new List<RowData>();
             List<ExtensionInfo> _extInfo = new List<ExtensionInfo>();
@@ -590,6 +580,7 @@ namespace SQLite_LFS_Prototype
             {
                 _rowContinue = false;
                 _totalRows = data.Tables[0].Rows.Count;
+                PrintTable(_rowData);
 
                 Console.WriteLine("\n\nTo view the data of a row select the Id. Press 0 to exit");
                 if (!int.TryParse(Console.ReadLine(), out _rowChoice)) { _rowChoice = -1; }

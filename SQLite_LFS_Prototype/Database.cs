@@ -419,8 +419,43 @@ namespace SQLite_LFS_Prototype
             }
         }
 
-        public void Serialize(RowData data)
+        public RowData Deserialize(RowData data, int Id, string table, DeserializationPath path)
         {
+            string _path;
+            string _main = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data");
+            string _manual = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Manual\");
+            string _pending = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Pending\");
+            string _processed = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Processed\");
+
+            switch (path)
+            {
+                case DeserializationPath.Manual:
+                    _path = _manual + $"{table}_ID_{data.Id}_Tx.tranx";
+                    break;
+                case DeserializationPath.Pending:
+                    _path = _pending + $"{table}_ID_{data.Id}_Tx.tranx";
+                    break;
+                case DeserializationPath.Processed:
+                    _path = _processed + $"{table}_ID_{data.Id}_Tx.tranx";
+                    break;
+                default:
+                    return null;
+            }
+
+            XmlSerializer reader = new XmlSerializer(typeof(RowData));
+
+            StreamReader _readTx = new StreamReader(_path);
+
+            RowData _returnValue = (RowData)reader.Deserialize(_readTx);
+
+            _readTx.Close();
+
+            return _returnValue;
+        }
+
+        public void Serialize(RowData data, string table)
+        {
+            string _path;
             string _main= Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\");
             string _manual = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Manual\");
             string _pending = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Pending\");
@@ -428,23 +463,31 @@ namespace SQLite_LFS_Prototype
 
             #region File Exist & Create Check
 
-            if(Directory.Exists(_main)) { Directory.CreateDirectory(_main); }
+            if(!Directory.Exists(_main)) { Directory.CreateDirectory(_main); }
 
-            if(Directory.Exists(_manual)) { Directory.CreateDirectory(_manual); }
+            if (!Directory.Exists(_manual)) { Directory.CreateDirectory(_manual); }
 
-            if(Directory.Exists(_pending)) { Directory.CreateDirectory(_pending); }
+            if (!Directory.Exists(_pending)) { Directory.CreateDirectory(_pending); }
 
-            if(Directory.Exists(_processed)) { Directory.CreateDirectory(_processed); }
+            if(!Directory.Exists(_processed)) { Directory.CreateDirectory(_processed); }
 
             #endregion
 
             XmlSerializer writer = new XmlSerializer(typeof(RowData));
 
-            FileStream _newTransaction = File.Create(_manual + $"Tx_{data.Id}.transaction");
+            _path = _manual + $"{table}_ID_{data.Id}_Tx.tranx";
 
+            if (File.Exists(_path))
+            {
+                File.Delete(_path);
+            }
+
+            FileStream _newTransaction = _newTransaction = File.Create(_path);
+            
             writer.Serialize(_newTransaction, data);
 
             _newTransaction.Close();
+
         }
 
         public DataSet GrabData(string table)
@@ -464,8 +507,6 @@ namespace SQLite_LFS_Prototype
                 data = query.Execute(command);
             }
 
-            _totalRows = data.Tables[0].Rows.Count;
-
             Console.Clear();
             Console.WriteLine($"\n\n\n\nData from {table}\n");
 
@@ -477,44 +518,44 @@ namespace SQLite_LFS_Prototype
             #region variables 
 
             int _rowChoice;
-            int _totalRows;
             int _rowsAffected;
 
             bool _rowContinue = true;
-
 
             DataSet data = GrabData(table);
 
             List<RowData> _rowData = new List<RowData>();
             List<ExtensionInfo> _extInfo = new List<ExtensionInfo>();
+            List<int> _IDs = new List<int>();
 
-            _totalRows = data.Tables[0].Rows.Count;
             #endregion
 
             //sets the data to the correst List
             if (table == "ExtensionInfo")
             {
-                foreach (DataRow row in data.Tables[0].Rows)
+                foreach(DataRow row in data.Tables[0].Rows)
                 {
                     _extInfo.Add(new ExtensionInfo()
                     {
                         Id = (Int64)row[0],
                         Extension = (string)row[1]
                     });
+
+                    _IDs.Add((int)row[0]);
                 }
             }
-            else
+
+            foreach (DataRow row in data.Tables[0].Rows)
             {
-                foreach (DataRow row in data.Tables[0].Rows)
+                _rowData.Add(new RowData()
                 {
-                    _rowData.Add(new RowData()
-                    {
-                        Id = (Int64)row[0],
-                        Name = (string)row[1],
-                        Data = (string)row[2],
-                        ExtensionId = (Int64)row[3]
-                    });
-                }
+                    Id = (Int64)row[0],
+                    Name = (string)row[1],
+                    Data = (string)row[2],
+                    ExtensionId = (Int64)row[3]
+                });
+
+                _IDs.Add((int)row[0]);
             }
 
             do
@@ -534,14 +575,14 @@ namespace SQLite_LFS_Prototype
 
                 try
                 {
-                    if (_rowChoice > _totalRows)
+                    if (_IDs.Contains(_rowChoice))
                     {
                         _rowContinue = true;
-
                         Console.Clear();
                         Console.WriteLine("Please Enter a Valid Option");
                         Console.WriteLine("Press Any Key To Continue...");
                         Console.ReadKey();
+                        break;
                     }
 
                     _deleteCmd += $"{_rowChoice};";
@@ -549,12 +590,10 @@ namespace SQLite_LFS_Prototype
                     {
                         _rowsAffected = _deleteRow.ExecuteNonQuery();
                         _rowData.RemoveAt(_rowChoice - 1);
-                        _totalRows--;
                         Console.WriteLine($"Executing Command: {_rowsAffected} row(s) effected.");
                         Console.WriteLine("Press Any Key To Continue...");
                         Console.ReadKey();
                     }
-
                 }
                 catch (Exception ex)
                 {
@@ -575,6 +614,7 @@ namespace SQLite_LFS_Prototype
             int _totalRows;
 
             bool _rowContinue;
+            bool found = false;
 
             DataSet data = GrabData(table);
 
@@ -597,7 +637,6 @@ namespace SQLite_LFS_Prototype
             }
             else
             {
-
                 foreach (DataRow row in data.Tables[0].Rows)
                 {
                     _rowData.Add(new RowData()
@@ -613,7 +652,7 @@ namespace SQLite_LFS_Prototype
             do
             {
                 _rowContinue = false;
-                _totalRows = data.Tables[0].Rows.Count;
+                _totalRows = _rowData.Count;
                 PrintTable(_rowData);
 
                 Console.WriteLine("\n\nTo view the data of a row select the Id. Press 0 to exit");
@@ -626,20 +665,11 @@ namespace SQLite_LFS_Prototype
 
                 try
                 {
-                    if (_rowChoice > _totalRows)
-                    {
-                        _rowContinue = true;
-
-                        Console.Clear();
-                        Console.WriteLine("Please Enter a Valid Option");
-                        Console.WriteLine("Press Any Key To Continue...");
-                        Console.ReadKey();
-                    }
-
                     foreach (RowData item in _rowData)
                     {
                         if (item.Id == _rowChoice)
                         {
+                            found = true;
                             Console.Clear();
                             Console.WriteLine($"\n\n\n\n\nSelected {item.Name}\n\n");
                             Console.WriteLine($"ID: {item.Id}\n");
@@ -649,6 +679,20 @@ namespace SQLite_LFS_Prototype
                             Console.WriteLine("\nPress Any Key To Continue...");
                             Console.ReadKey();
                             return;
+                        }
+                        Serialize(item, table);
+                    }
+                    
+                    if(!found)
+                    {
+                        if (_rowChoice > _totalRows)
+                        {
+                            _rowContinue = true;
+
+                            Console.Clear();
+                            Console.WriteLine("Please Enter a Valid Option");
+                            Console.WriteLine("Press Any Key To Continue...");
+                            Console.ReadKey();
                         }
                     }
 
@@ -848,6 +892,13 @@ namespace SQLite_LFS_Prototype
             All,
             InsertFormat,
             None
+        }
+
+        public enum DeserializationPath
+        {
+            Manual = 1,
+            Pending = 2, 
+            Processed = 3
         }
 
         #endregion

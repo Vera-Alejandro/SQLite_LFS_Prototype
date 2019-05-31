@@ -349,7 +349,7 @@ namespace SQLite_LFS_Prototype
                 }
             }
 
-            dataTabs = (dataTabs / 8) + 1;
+            dataTabs = (dataTabs > 8) ? 8 : (dataTabs / 8) + 1;
             nameTabs = (nameTabs / 8) + 1;
 
             //printing stuff
@@ -364,7 +364,7 @@ namespace SQLite_LFS_Prototype
 
             Console.Write("Data");
 
-            for (int i = 0; i < (dataTabs % 8); i++)
+            for (int i = 0; i < dataTabs; i++)
             {
                 Console.Write("\t");
             }
@@ -373,7 +373,7 @@ namespace SQLite_LFS_Prototype
 
             foreach (RowData value in data)
             {
-                valuesDataTab = dataTabs - (value.Data.Length / 8);
+                valuesDataTab = (value.Data.Length > 60) ? 1 :dataTabs - (value.Data.Length / 8);
                 valuesNameTab = nameTabs - (value.Name.Length / 8);
 
                 Console.Write($"{value.Id.ToString()}\t{value.Name}");
@@ -383,9 +383,9 @@ namespace SQLite_LFS_Prototype
                     Console.Write("\t");
                 }
 
-                if(value.Data.Length > 62)
+                if(value.Data.Length > 60)
                 { 
-                    Console.Write($"{value.Data.Remove(62)}...");
+                    Console.Write($"{value.Data.Remove(60)}...");
                 }
                 else
                 {
@@ -428,9 +428,6 @@ namespace SQLite_LFS_Prototype
             int _totalRows;
             string _command = $"SELECT * FROM {table};";
 
-            List<ExtensionInfo> extData = new List<ExtensionInfo>();
-            List<RowData> _rowData = new List<RowData>();
-
             DataSet data = new DataSet();
             DbCommand command = FileConnection.CreateCommand();
             DatabaseProfile profile = new DatabaseProfile("sqlite", constr, "SQLite 3");
@@ -444,33 +441,6 @@ namespace SQLite_LFS_Prototype
             Console.Clear();
             Console.WriteLine($"\n\n\n\nData from {table}\n");
 
-            if (table == "ExtensionInfo")
-            {
-
-                foreach (DataRow row in data.Tables[0].Rows)
-                {
-                    extData.Add(new ExtensionInfo()
-                    {
-                        Id = (Int64)row[0],
-                        Extension = (string)row[1]
-                    });
-                }
-            }
-            else
-            {
-
-                foreach (DataRow row in data.Tables[0].Rows)
-                {
-                    _rowData.Add(new RowData()
-                    {
-                        Id = (Int64)row[0],
-                        Name = (string)row[1],
-                        Data = (string)row[2],
-                        ExtensionId = (Int64)row[3]
-                    });
-                }
-            }
-            
             return data;
         }
 
@@ -671,6 +641,7 @@ namespace SQLite_LFS_Prototype
         public void MoveData(string PrimaryTable)
         {
             int _secondaryChoice;
+            int _rowSelected;
 
             DataSet data = new DataSet();
             List<RowData> rows = new List<RowData>();
@@ -683,6 +654,7 @@ namespace SQLite_LFS_Prototype
             {
                 rows.Add(new RowData()
                 {
+                    Id = (Int64)item.ItemArray[0],
                     Name = (string)item.ItemArray[1],
                     Data = (string)item.ItemArray[2],
                     ExtensionId = (Int64)item.ItemArray[3]
@@ -699,6 +671,12 @@ namespace SQLite_LFS_Prototype
 
                 string _nameMenu;
                 #endregion
+
+                PrintTable(rows);
+                Console.WriteLine("\nSelect the Row to move: ");
+                if(!int.TryParse(Console.ReadLine(), out _rowSelected)) { _rowSelected = -1; }
+
+
 
                 Console.Clear();
                 Console.WriteLine("\n\n\n\n\n" +
@@ -743,9 +721,9 @@ namespace SQLite_LFS_Prototype
                         return;
                     }
 
-                    if (tables[_secondaryChoice - 1]  != PrimaryTable)
+                    if (tables[_secondaryChoice - 1]  !=  PrimaryTable)
                     {
-                        MoveToSecondary(tables[_secondaryChoice - 1]);
+                        MoveToSecondary(tables[_secondaryChoice - 1], (_rowSelected - 1));
                         Console.WriteLine("\t\t\t\tMove Succsessful.");
                         Console.ReadKey();
                         return;
@@ -764,24 +742,22 @@ namespace SQLite_LFS_Prototype
             //Submethods
             //
 
-            void MoveToSecondary(string SecondaryTable)
+            void MoveToSecondary(string SecondaryTable, int RowId)
             {
                 string _cmd = $"INSERT INTO {SecondaryTable} (Name, Data, ExtensionId) VALUES (@Name, @Data, @ExtensionId);";
                 int _rowsAffected = 0;
 
                 SQLiteCommand insertCommand;
 
-                foreach (RowData row in rows)
+                using (insertCommand = new SQLiteCommand(_cmd, FileConnection))
                 {
-                    using (insertCommand = new SQLiteCommand(_cmd, FileConnection))
-                    {
-                        insertCommand.Parameters.Add(new SQLiteParameter("@Name", row.Name));
-                        insertCommand.Parameters.Add(new SQLiteParameter("@Data", row.Data));
-                        insertCommand.Parameters.Add(new SQLiteParameter("@ExtensionId", row.ExtensionId));
+                    insertCommand.Parameters.Add(new SQLiteParameter("@Name", rows[RowId].Name));
+                    insertCommand.Parameters.Add(new SQLiteParameter("@Data", rows[RowId].Data));
+                    insertCommand.Parameters.Add(new SQLiteParameter("@ExtensionId", rows[RowId].ExtensionId));
 
-                        _rowsAffected += insertCommand.ExecuteNonQuery();
-                    }
+                    _rowsAffected += insertCommand.ExecuteNonQuery();
                 }
+                
 
                 Console.WriteLine($"\n\n\t\t\t\tCommand Executed Successfully: {_rowsAffected} row(s) affected.");
             }

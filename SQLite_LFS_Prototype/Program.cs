@@ -207,10 +207,11 @@ namespace SQLite_LFS_Prototype
                             Console.WriteLine("\n\n\n\n\n" +
                             "\t\t\t\t_______________Table Data Menu________________");
                             PrintMenu();
+                            Console.Write("\n\t\t\t\tSelect the table you want to view: ");
 
                             #endregion
 
-                            if (!int.TryParse(Console.ReadLine(), out _tableDataChoice)) { _tableDataChoice = -1; }
+                        if (!int.TryParse(Console.ReadLine(), out _tableDataChoice)) { _tableDataChoice = -1; }
 
                             try
                             {

@@ -1,12 +1,5 @@
 using System;
 using System.Collections.Generic;
-using Interstates.Control.Database.SQLite3;
-using Interstates.Control.Database;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Data;
-using System.Data.SQLite;
 using CommandLine;
 using SQLite_LFS_Prototype.Model;
 

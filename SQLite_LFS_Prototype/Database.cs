@@ -1,14 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Dapper;
+﻿using Dapper;
 using Interstates.Control.Database;
 using Interstates.Control.Database.SQLite3;
+using System;
+using System.IO;
 using System.Data;
+using System.Linq;
 using System.Data.Common;
 using System.Data.SQLite;
-using System.IO;
+using System.Xml.Serialization;
+using System.Collections.Generic;
 using SQLite_LFS_Prototype.Model;
+using System.Reflection;
 
 namespace SQLite_LFS_Prototype
 {
@@ -33,7 +35,6 @@ namespace SQLite_LFS_Prototype
                 Console.WriteLine("SQLite File Created.");
             }
             
-            //FileConnection = new SQLiteConnection($@"Data Source={_filePath}; Version=3;");
             FileConnection = new SQLiteConnection(constr);
             CommandAction = FormatType.None;
         }
@@ -78,8 +79,7 @@ namespace SQLite_LFS_Prototype
 
             try
             {
-                SQLiteCommand newTable;
-                using (newTable = new SQLiteCommand(command, FileConnection))
+                using (SQLiteCommand newTable = new SQLiteCommand(command, FileConnection))
                 {
                     newTable.ExecuteNonQuery();
                     Console.WriteLine($"Command Executed Successfully");
@@ -163,8 +163,7 @@ namespace SQLite_LFS_Prototype
 
             try
             {
-                SQLiteCommand newCommand;
-                using (newCommand = new SQLiteCommand(command, FileConnection))
+                using (SQLiteCommand newCommand = new SQLiteCommand(command, FileConnection))
                 {
                     newCommand.ExecuteNonQuery();
                     return "Command Completed Successfully!";
@@ -184,8 +183,7 @@ namespace SQLite_LFS_Prototype
 
             try
             {
-                SQLiteCommand insertCommand;
-                using (insertCommand = new SQLiteCommand(command, FileConnection))
+                using (SQLiteCommand insertCommand = new SQLiteCommand(command, FileConnection))
                 {
                     retValue = insertCommand.ExecuteNonQuery();
                     Console.WriteLine($"Executing Comman: {retValue} row(s) effected.");
@@ -252,18 +250,19 @@ namespace SQLite_LFS_Prototype
 
             string command = $"SELECT * FROM {table};";
 
-            SQLiteCommand selectAll = new SQLiteCommand(command, FileConnection);
-            SQLiteDataReader read = selectAll.ExecuteReader();
-
-            _tempColumns = GetFeilds(columns).ToList();
-            #endregion
-
-            foreach (var item in read)
+            using (SQLiteCommand selectAll = new SQLiteCommand(command, FileConnection))
             {
-                for (int i = 0; i < read.FieldCount; i++) 
+                SQLiteDataReader read = selectAll.ExecuteReader();
+                _tempColumns = GetFeilds(columns).ToList();
+                #endregion
+
+                foreach (var item in read)
                 {
-                    _tableData.Add(read.GetString(i));
-                } 
+                    for (int i = 0; i < read.FieldCount; i++)
+                    {
+                        _tableData.Add(read.GetString(i));
+                    }
+                }
             }
 
             foreach (string entry in _tableData) { _tabsNeeded.Add((entry.Length / 8) + 1); }
@@ -407,8 +406,7 @@ namespace SQLite_LFS_Prototype
 
             try
             {
-                SQLiteCommand dropTable;
-                using (dropTable = new SQLiteCommand(command, FileConnection))
+                using (SQLiteCommand dropTable = new SQLiteCommand(command, FileConnection))
                 {
                     dropTable.ExecuteNonQuery();
                     Console.WriteLine("Comand Executed Successfully");
@@ -421,7 +419,33 @@ namespace SQLite_LFS_Prototype
             }
         }
 
-        
+        public void Serialize(RowData data)
+        {
+            string _main= Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\");
+            string _manual = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Manual\");
+            string _pending = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Pending\");
+            string _processed = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Processed\");
+
+            #region File Exist & Create Check
+
+            if(Directory.Exists(_main)) { Directory.CreateDirectory(_main); }
+
+            if(Directory.Exists(_manual)) { Directory.CreateDirectory(_manual); }
+
+            if(Directory.Exists(_pending)) { Directory.CreateDirectory(_pending); }
+
+            if(Directory.Exists(_processed)) { Directory.CreateDirectory(_processed); }
+
+            #endregion
+
+            XmlSerializer writer = new XmlSerializer(typeof(RowData));
+
+            FileStream _newTransaction = File.Create(_manual + $"Tx_{data.Id}.transaction");
+
+            writer.Serialize(_newTransaction, data);
+
+            _newTransaction.Close();
+        }
 
         public DataSet GrabData(string table)
         {
@@ -429,13 +453,17 @@ namespace SQLite_LFS_Prototype
             string _command = $"SELECT * FROM {table};";
 
             DataSet data = new DataSet();
-            DbCommand command = FileConnection.CreateCommand();
-            DatabaseProfile profile = new DatabaseProfile("sqlite", constr, "SQLite 3");
-            SQLiteQuery query = new SQLiteQuery(profile);
 
-            command.CommandText = _command;
-            command.CommandType = CommandType.Text;
-            data = query.Execute(command);
+            using (DbCommand command = FileConnection.CreateCommand())
+            {
+                DatabaseProfile profile = new DatabaseProfile("sqlite", constr, "SQLite 3");
+                SQLiteQuery query = new SQLiteQuery(profile);
+
+                command.CommandText = _command;
+                command.CommandType = CommandType.Text;
+                data = query.Execute(command);
+            }
+
             _totalRows = data.Tables[0].Rows.Count;
 
             Console.Clear();
@@ -517,8 +545,7 @@ namespace SQLite_LFS_Prototype
                     }
 
                     _deleteCmd += $"{_rowChoice};";
-                    SQLiteCommand _deleteRow;
-                    using (_deleteRow = new SQLiteCommand(_deleteCmd, FileConnection))
+                    using (SQLiteCommand _deleteRow = new SQLiteCommand(_deleteCmd, FileConnection))
                     {
                         _rowsAffected = _deleteRow.ExecuteNonQuery();
                         _rowData.RemoveAt(_rowChoice - 1);
@@ -614,11 +641,11 @@ namespace SQLite_LFS_Prototype
                         if (item.Id == _rowChoice)
                         {
                             Console.Clear();
-                            Console.WriteLine($"\n\n\n\n\n\t\t\t\t\tSelected {item.Name}\n\n");
-                            Console.WriteLine($"\t\t\tID: {item.Id}\n");
-                            Console.WriteLine($"\t\t\tName: {item.Name}\n");
-                            Console.WriteLine($"\t\t\tData: \n\t\t\t{item.Data}\n");
-                            Console.WriteLine($"\t\t\tExtensionId: {item.ExtensionId}\n");
+                            Console.WriteLine($"\n\n\n\n\nSelected {item.Name}\n\n");
+                            Console.WriteLine($"ID: {item.Id}\n");
+                            Console.WriteLine($"Name: {item.Name}\n");
+                            Console.WriteLine($"Data: \n{item.Data}\n");
+                            Console.WriteLine($"ExtensionId: {item.ExtensionId}\n");
                             Console.WriteLine("\nPress Any Key To Continue...");
                             Console.ReadKey();
                             return;
@@ -747,9 +774,7 @@ namespace SQLite_LFS_Prototype
                 string _cmd = $"INSERT INTO {SecondaryTable} (Name, Data, ExtensionId) VALUES (@Name, @Data, @ExtensionId);";
                 int _rowsAffected = 0;
 
-                SQLiteCommand insertCommand;
-
-                using (insertCommand = new SQLiteCommand(_cmd, FileConnection))
+                using (SQLiteCommand insertCommand = new SQLiteCommand(_cmd, FileConnection))
                 {
                     insertCommand.Parameters.Add(new SQLiteParameter("@Name", rows[RowId].Name));
                     insertCommand.Parameters.Add(new SQLiteParameter("@Data", rows[RowId].Data));

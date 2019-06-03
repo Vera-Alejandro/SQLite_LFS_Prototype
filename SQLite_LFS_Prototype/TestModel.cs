@@ -2,6 +2,7 @@
 
 namespace SQLite_LFS_Prototype.Model
 {
+    [Serializable]
     public class ExtensionInfo 
     {
         public Int64 Id { get; set; }

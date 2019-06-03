@@ -10,7 +10,7 @@ using System.Data.SQLite;
 using System.Xml.Serialization;
 using System.Collections.Generic;
 using SQLite_LFS_Prototype.Model;
-using System.Globalization;
+using System.Text;
 
 namespace SQLite_LFS_Prototype
 {
@@ -166,79 +166,30 @@ namespace SQLite_LFS_Prototype
         }
 
         /// <summary>
-        /// Formated Command to insert data
-        /// </summary>
-        /// <param name="table"></param>
-        /// <param name="columns"></param>
-        /// <param name="values"></param>
-        /// <returns></returns>
-        public int InsertInto(string table, List<string> columns, List<string> values)
-        {
-            int retValue = 0;
-
-            string command = $"INSERT INTO {table}({FormatList(columns, FormatType.InsertFormat)}) VALUES ({FormatList(values, FormatType.All)});";
-
-            try
-            {
-                using (SQLiteCommand insertCommand = new SQLiteCommand(command, FileConnection))
-                {
-                    retValue = insertCommand.ExecuteNonQuery();
-                    Console.WriteLine($"Executing Comman: {retValue} row(s) effected.");
-                    return retValue;
-                }
-            }
-            catch (Exception)
-            {
-
-                Console.WriteLine("Command Failed");
-                return -2;
-            }
-        }
-
-        /// <summary>
         /// Insert Command asking user for paramaters
         /// </summary>
         /// <param name="table"></param>
         public void InsertInto(string table)
         {
-            string _insertCmd = $@"INSERT INTO {table} (Name, Data, ExtensionId) VALUES (@Name, @Data, @ExtensionId); SELECT last_insert_rowid();";
-            string _name;
-            string _data;
-            Int64 _extId;
-            int _rowsaffected;
+            FileData data = new FileData();
 
             Console.Write("\n\t\t\t\tEnter the Name of the new entry.\n\t\t\t\t");
-            _name = Console.ReadLine();
+            data.Type = Console.ReadLine();
             Console.WriteLine();
 
             Console.Write("\t\t\t\tEnter the Data for this new entry\n\t\t\t\t");
-            _data = Console.ReadLine();
+            data.Data = Encoding.ASCII.GetBytes(Console.ReadLine());
             Console.WriteLine();
 
             Console.Write("\t\t\t\tEnter the Extensino ID for this new entry\n\t\t\t\t");
-            _extId = Convert.ToInt64(Console.ReadLine());
+            data.DateCreated = Console.ReadLine();
             Console.WriteLine();
-            
-            
-            try
-            {
-                using (SQLiteCommand Insert = new SQLiteCommand(_insertCmd, FileConnection))
-                {
-                    Insert.Parameters.Add(new SQLiteParameter("@Name", _name));
-                    Insert.Parameters.Add(new SQLiteParameter("@Data", _data));
-                    Insert.Parameters.Add(new SQLiteParameter("@ExtensionId", _extId));
 
-                    _rowsaffected = Insert.ExecuteNonQuery();
-                    Console.WriteLine($"\t\t\t\tCommand Executed Successfully: {_rowsaffected} row(s) affected.");
-                    Console.ReadKey();
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-                Console.ReadKey();
-                throw;
-            }
+            Console.Write("\t\t\t\tEnter the Extensino ID for this new entry\n\t\t\t\t");
+            data.DateUpdated = Console.ReadLine();
+            Console.WriteLine();
+
+            InsertRow(table, data);
         }
 
         /// <summary>
@@ -317,7 +268,7 @@ namespace SQLite_LFS_Prototype
             string _command = $@"INSERT INTO {table} (Name, Data, Extension) VALUES (@Name, @Data, @Extension); SELECT last_insert_rowid();";
 
             DatabaseProfile profile = new DatabaseProfile("sqlite", constr, "SQLite3");
-            
+
             rowData.Id = FileConnection.Query<int>(_command, rowData).First();
         }
 
@@ -756,6 +707,9 @@ namespace SQLite_LFS_Prototype
                 });
             }
 
+            int number = (int)data.Tables[0].Rows[0].ItemArray[0];
+
+
             do
             {
                 #region Secondary Menu
@@ -771,7 +725,7 @@ namespace SQLite_LFS_Prototype
 
                 PrintTable(rows);
                 Console.WriteLine("\nSelect the Row to move: ");
-                if(!int.TryParse(Console.ReadLine(), out _rowSelected)) { _rowSelected = -1; }
+                if (!int.TryParse(Console.ReadLine(), out _rowSelected)) { _rowSelected = -1; }
 
 
                 //do we need another menu? 
@@ -789,7 +743,7 @@ namespace SQLite_LFS_Prototype
 
                 foreach (string table in tables)
                 {
-                    if(table == PrimaryTable)
+                    if (table == PrimaryTable)
                     {
                         _nameMenu = $"\t\t\t\t|---Primary--{_option + 1} - {table}";
                     }
@@ -811,19 +765,26 @@ namespace SQLite_LFS_Prototype
                             "\t\t\t\t|--------------------------------------------|\n" +
                             "\t\t\t\t|____________________________________________|\n" +
                             "\t\t\t\tSelect the Secondary Table: ");
-                
+
                 #endregion
 
-                if(!int.TryParse(Console.ReadLine(), out _secondaryChoice)) { _secondaryChoice = -1; }
+                if (!int.TryParse(Console.ReadLine(), out _secondaryChoice)) { _secondaryChoice = -1; }
 
                 SecondaryTable = tables[_secondaryChoice - 1];
 
                 try
                 {
-                    if (tables[_secondaryChoice - 1]  !=  PrimaryTable)
+                    if (tables[_secondaryChoice - 1] != PrimaryTable)
                     {
-                        MoveToSecondary(SecondaryTable, _rowSelected);
+                        DataSet _Unfilte = GrabData(PrimaryTable);
+
                         TransferData(PrimaryTable, _rowSelected);
+
+
+                        SQLiteCommand InsertCommand;
+                        //InsertCommand.Parameters.Add();
+
+
                         Console.ReadKey();
                         return;
                     }
@@ -836,29 +797,6 @@ namespace SQLite_LFS_Prototype
                 }
 
             } while (true);
-
-
-            //
-            //Submethods
-            //
-
-            //This function grabs the row from manual and moves it into processed 
-            void MoveToSecondary(string Secondary, int RowId)
-            {
-                string _cmd = $"INSERT INTO {Secondary} (Name, Data, ExtensionId) VALUES (@Name, @Data, @ExtensionId);";
-                int _rowsAffected = 0;
-
-                using (SQLiteCommand insertCommand = new SQLiteCommand(_cmd, FileConnection))
-                {
-                    insertCommand.Parameters.Add(new SQLiteParameter("@Name", rows[RowId].Name));
-                    insertCommand.Parameters.Add(new SQLiteParameter("@Data", rows[RowId].Data));
-                    insertCommand.Parameters.Add(new SQLiteParameter("@ExtensionId", rows[RowId].ExtensionId));
-
-                    _rowsAffected += insertCommand.ExecuteNonQuery();
-                }
-                
-                Console.WriteLine($"\n\n\t\t\t\tCommand Executed Successfully: {_rowsAffected} row(s) affected.");
-            }
         }
 
         /// <summary>
@@ -982,6 +920,37 @@ namespace SQLite_LFS_Prototype
             }
 
             return _retValue;
+        }
+
+        /// <summary>
+        /// insert command that allows for one insert at a time.
+        /// </summary>
+        /// <param name="Table"></param>
+        /// <param name="RowId"></param>
+        /// <param name="Collection"></param>
+        private void InsertRow(string Table, FileData data)
+        {
+            string _command = $"INSERT INTO {Table} (Type, Data, DateCreated, DateUpdated) VALUES (@Type, @Data, @DateCreated, @DateUpdated);";
+            int rowsAffected;
+
+            SQLiteParameter[] parameters = 
+            {
+                new SQLiteParameter(@"Type", data.Type),
+                new SQLiteParameter(@"Data", data.Data),
+                new SQLiteParameter(@"DateCreated", data.DateCreated),
+                new SQLiteParameter(@"DateUpdated", data.DateUpdated)
+            };
+
+
+            using (SQLiteCommand insertCommand = new SQLiteCommand(_command, FileConnection))
+            {
+                insertCommand.Parameters.AddRange(parameters);
+
+                rowsAffected = insertCommand.ExecuteNonQuery();
+
+                Console.WriteLine($"Command Executed Successfully. {rowsAffected} row(s) affected.");
+                Console.ReadKey();
+            }
         }
 
         #endregion

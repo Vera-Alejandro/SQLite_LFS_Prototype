@@ -9,9 +9,9 @@ namespace SQliteTesting
     [TestClass]
     public class UnitTest1
     {
-        Database dbTest = new Database("LogFile.sqlite3");
+        Database dbTest = new Database(@"C:\Users\alejandro.vera\source\repos\SQLite_LFS_Prototype\SQLite_LFS_Prototype\LogFile.sqlite3");
 
-
+        #region Successful Tests
         [TestMethod]
         public void Connect()
         {
@@ -48,99 +48,7 @@ namespace SQliteTesting
             dbTest.Disconnect();
         }
 
-        [TestMethod]
-        public void PrepInsert()
-        {
-            string table = "InsertTest";
-            dbTest.Connect();
-
-            List<string> columns = new List<string>
-            {
-                "Name TEXT",
-                "Data TEXT",
-                "Extension TEXT"
-            };
-            
-            dbTest.CreateTable(table, columns);
-
-            List<string> fields = new List<string>
-            {
-                "Name",
-                "Data",
-                "Extension"
-            };
-
-            List<string> data = new List<string>
-            {
-                "'FirstFile.txt'",
-                "'this is the data'",
-                "'.txt'"
-            };
-
-            var expected = "INSERT INTO InsertTest(Name, Data, Extension) VALUES ('FirstFile.txt', 'this is the data', '.txt');";
-            var actual = dbTest.InsertInto(table, fields, data);
-            
-            Assert.AreEqual(expected, actual);
-
-            dbTest.Disconnect();
-        }
-
-        [TestMethod]
-        public void DropTable()
-        {
-            string table = "TheBeat";
-
-            dbTest.Connect();
-
-            TestCase(table);
-
-            var expected = "Command Successfully Executed";
-            var actual = dbTest.DropTable(table);
-
-            Assert.AreEqual(expected, actual);
-
-            dbTest.Disconnect();
-        }
-
-        [TestMethod]
-        public void SelectAll()
-        {
-            string table = "SelectTest";
-            dbTest.Connect();
-            TestCase(table);
-
-            TestCase(table);
-
-            //var expected = "";
-            //var actual = " ";
-
-            Assert.Fail();
-
-            dbTest.Disconnect();
-        }
-
-        [TestMethod]
-        public void TableNames()
-        {
-            dbTest.Connect();
-
-            List<string> expected = new List<string>
-            {
-                "ExtensionInfo",
-                "FileData",
-                "ManualTx",
-                "PendingTx",
-                "ProcessedTx"
-                
-            };
-
-            List<string> actual = dbTest.GetTables();
-
-            Assert.AreEqual(expected, actual);
-
-            dbTest.Disconnect();
-        }
-        
+     
         [TestMethod]
         public void TestDate()
         {
@@ -160,32 +68,21 @@ namespace SQliteTesting
             Assert.AreEqual(expected, actual);
         }
 
+        #endregion
 
-        //convert data in tables to objects 
-        public void Objectify()
+        [TestMethod]
+        public void MoveData()
         {
 
-            Assert.Fail();
+            dbTest.Connect();
+
+            
+
+
+            Assert.IsTrue(true);
+
+            dbTest.Disconnect();
         }
 
-        //for testing purposes only
-        public void TestCase(string TableName)
-        {
-            List<string> columns = new List<string>
-            {
-                "Name TEXT",
-                "Data TEXT",
-                "Extension TEXT"
-            };
-            dbTest.CreateTable(TableName, columns);
-
-            List<string> data = new List<string>
-            {
-                "'FirstFile.txt'",
-                "'this is the data'",
-                "'.txt'"
-            };
-            dbTest.InsertInto(TableName, columns, data);
-        }
     }
 }

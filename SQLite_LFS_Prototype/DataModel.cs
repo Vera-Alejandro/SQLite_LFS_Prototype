@@ -21,7 +21,7 @@ namespace SQLite_LFS_Prototype
         public String Type { get; set; }
         public Byte[] Data { get; set; }
         public Int32 ExtensionId { get; set; }
-        public DateTime DateCreated { get; set; }
-        public DateTime DateUpdated { get; set; }
+        public string DateCreated { get; set; }
+        public string DateUpdated { get; set; }
     }
 }

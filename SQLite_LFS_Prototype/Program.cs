@@ -227,12 +227,12 @@ namespace SQLite_LFS_Prototype
 
                     void MoveDataMenu()
                     {
-                        int _tableDataChoice;
-                        bool _tableDataContinue;
+                        int _moveDataChoice;
+                        bool _moveDataContinue;
 
                         do
                         {
-                            _tableDataContinue = false;
+                            _moveDataContinue = false;
 
                             #region Move Data Menu
 
@@ -243,25 +243,25 @@ namespace SQLite_LFS_Prototype
                             Console.Write("\n\t\t\t\tSelect the Primary Table: ");
                             #endregion
 
-                            if (!int.TryParse(Console.ReadLine(), out _tableDataChoice)) { _tableDataChoice = -1; }
+                            if (!int.TryParse(Console.ReadLine(), out _moveDataChoice)) { _moveDataChoice = -1; }
 
                             try
                             {
-                                if (_tableDataChoice == 0)
+                                if (_moveDataChoice == 0)
                                 {
                                     return;
                                 }
-                                sqlDatabase.MoveData(tables[_tableDataChoice - 1]);
+                                sqlDatabase.MoveData(tables[_moveDataChoice - 1]);
                             }
                             catch (Exception)
                             {
-                                _tableDataContinue = true;
+                                _moveDataContinue = true;
                                 Console.Clear();
                                 Console.WriteLine("Please Enter a Valid Option");
                                 Wait();
                             }
 
-                        } while (_tableDataContinue);
+                        } while (_moveDataContinue);
                     }
 
                     void Wait()

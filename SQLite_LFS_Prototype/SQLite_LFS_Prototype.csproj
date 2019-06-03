@@ -120,6 +120,30 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="Data\Manual\FileData_ID_1_Tx.tranx" />
+    <None Include="Data\Manual\FileData_ID_2_Tx.tranx" />
+    <None Include="Data\Manual\FileData_ID_3_Tx.tranx" />
+    <None Include="Data\Manual\FileData_ID_4_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_10_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_17_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_18_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_19_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_1_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_20_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_21_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_23_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_24_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_25_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_26_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_27_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_2_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_3_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_4_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_5_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_6_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_7_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_8_Tx.tranx" />
+    <None Include="Data\Manual\MoveFile_ID_9_Tx.tranx" />
     <None Include="LogFile.sqlite3" />
     <None Include="packages.config" />
   </ItemGroup>
@@ -132,6 +156,10 @@
       <Project>{8dfeceb8-1728-4a97-9d41-c4981962dd36}</Project>
       <Name>Database</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Data\Pending\" />
+    <Folder Include="Data\Processed\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\System.Data.SQLite.Core.1.0.110.0\build\net46\System.Data.SQLite.Core.targets" Condition="Exists('..\packages\System.Data.SQLite.Core.1.0.110.0\build\net46\System.Data.SQLite.Core.targets')" />

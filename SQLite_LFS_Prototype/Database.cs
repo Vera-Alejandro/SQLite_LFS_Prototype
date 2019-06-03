@@ -10,7 +10,6 @@ using System.Data.SQLite;
 using System.Xml.Serialization;
 using System.Collections.Generic;
 using SQLite_LFS_Prototype.Model;
-using System.Reflection;
 
 namespace SQLite_LFS_Prototype
 {
@@ -21,6 +20,14 @@ namespace SQLite_LFS_Prototype
         private string constr { get; set; }
 
         private readonly string _filePath;
+
+        private readonly string _main = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\");
+
+        private readonly string _manual = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Manual\");
+
+        private readonly string _pending = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Pending\");
+
+        private readonly string _processed = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Processed\");
 
         //constructor
         public Database(string FilePath)
@@ -419,32 +426,11 @@ namespace SQLite_LFS_Prototype
             }
         }
 
-        public RowData Deserialize(RowData data, int Id, string table, DeserializationPath path)
+        public RowData Deserialize(string path)
         {
-            string _path;
-            string _main = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data");
-            string _manual = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Manual\");
-            string _pending = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Pending\");
-            string _processed = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Processed\");
-
-            switch (path)
-            {
-                case DeserializationPath.Manual:
-                    _path = _manual + $"{table}_ID_{data.Id}_Tx.tranx";
-                    break;
-                case DeserializationPath.Pending:
-                    _path = _pending + $"{table}_ID_{data.Id}_Tx.tranx";
-                    break;
-                case DeserializationPath.Processed:
-                    _path = _processed + $"{table}_ID_{data.Id}_Tx.tranx";
-                    break;
-                default:
-                    return null;
-            }
-
             XmlSerializer reader = new XmlSerializer(typeof(RowData));
 
-            StreamReader _readTx = new StreamReader(_path);
+            StreamReader _readTx = new StreamReader(path);
 
             RowData _returnValue = (RowData)reader.Deserialize(_readTx);
 
@@ -456,10 +442,6 @@ namespace SQLite_LFS_Prototype
         public void Serialize(RowData data, string table)
         {
             string _path;
-            string _main= Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\");
-            string _manual = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Manual\");
-            string _pending = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Pending\");
-            string _processed = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Processed\");
 
             #region File Exist & Create Check
 
@@ -492,7 +474,6 @@ namespace SQLite_LFS_Prototype
 
         public DataSet GrabData(string table)
         {
-            int _totalRows;
             string _command = $"SELECT * FROM {table};";
 
             DataSet data = new DataSet();
@@ -508,9 +489,13 @@ namespace SQLite_LFS_Prototype
             }
 
             Console.Clear();
-            Console.WriteLine($"\n\n\n\nData from {table}\n");
 
             return data;
+        }
+
+        public List<RowData> GrabData(string FolderPath)
+        {
+
         }
 
         public void DeleteRow(string table)
@@ -714,12 +699,16 @@ namespace SQLite_LFS_Prototype
             int _secondaryChoice;
             int _rowSelected;
 
+            string SecondaryTable;
+
             DataSet data = new DataSet();
             List<RowData> rows = new List<RowData>();
             List<string> tables = new List<string>();
 
             data = GrabData(PrimaryTable);
             tables = GetTables();
+
+            
 
             foreach (DataRow item in data.Tables[0].Rows)
             {
@@ -737,17 +726,17 @@ namespace SQLite_LFS_Prototype
                 #region Secondary Menu
 
                 #region Menu Variables
+
                 int _dashCount;
                 int _option = 0;
 
                 string _nameMenu;
+
                 #endregion
 
                 PrintTable(rows);
                 Console.WriteLine("\nSelect the Row to move: ");
                 if(!int.TryParse(Console.ReadLine(), out _rowSelected)) { _rowSelected = -1; }
-
-
 
                 Console.Clear();
                 Console.WriteLine("\n\n\n\n\n" +
@@ -785,6 +774,8 @@ namespace SQLite_LFS_Prototype
 
                 if(!int.TryParse(Console.ReadLine(), out _secondaryChoice)) { _secondaryChoice = -1; }
 
+                SecondaryTable = tables[_secondaryChoice - 1];
+
                 try
                 {
                     if (_secondaryChoice == 0)
@@ -794,7 +785,8 @@ namespace SQLite_LFS_Prototype
 
                     if (tables[_secondaryChoice - 1]  !=  PrimaryTable)
                     {
-                        MoveToSecondary(tables[_secondaryChoice - 1], (_rowSelected - 1));
+                        MoveToSecondary(SecondaryTable, _rowSelected);
+                        TransferData(PrimaryTable, SecondaryTable, _rowSelected);
                         Console.WriteLine("\t\t\t\tMove Succsessful.");
                         Console.ReadKey();
                         return;
@@ -809,13 +801,14 @@ namespace SQLite_LFS_Prototype
 
             } while (true);
 
+
             //
             //Submethods
             //
 
-            void MoveToSecondary(string SecondaryTable, int RowId)
+            void MoveToSecondary(string Secondary, int RowId)
             {
-                string _cmd = $"INSERT INTO {SecondaryTable} (Name, Data, ExtensionId) VALUES (@Name, @Data, @ExtensionId);";
+                string _cmd = $"INSERT INTO {Secondary} (Name, Data, ExtensionId) VALUES (@Name, @Data, @ExtensionId);";
                 int _rowsAffected = 0;
 
                 using (SQLiteCommand insertCommand = new SQLiteCommand(_cmd, FileConnection))
@@ -827,9 +820,41 @@ namespace SQLite_LFS_Prototype
                     _rowsAffected += insertCommand.ExecuteNonQuery();
                 }
                 
-
                 Console.WriteLine($"\n\n\t\t\t\tCommand Executed Successfully: {_rowsAffected} row(s) affected.");
             }
+        }
+
+        public void TransferData(string PrimaryTable, string SecondaryTable, int RowId)
+        {
+            List<string> tables = new List<string>();
+            List<RowData> rows = new List<RowData>();
+
+            tables = GetTables();
+        }
+
+        public RowData GetFileData(string table)
+        {
+            int _IdChoice;
+
+            string _path;
+
+            RowData _fileData = new RowData();
+            List<string>  _files = Directory.EnumerateFiles(_manual).ToList();
+
+
+            if(!int.TryParse(Console.ReadLine(), out _IdChoice)) { _IdChoice = -1; }
+
+            foreach (string file in _files)
+            {
+                _path = _manual + $"{table}_ID_{_IdChoice}_Tx.tranx";
+
+                if (file == _path)
+                {
+                    _fileData = Deserialize(file);
+                }
+            }
+
+            return _fileData;
         }
 
         #region Support Functions
@@ -872,10 +897,19 @@ namespace SQLite_LFS_Prototype
 
         public List<string> GetTables()
         {
+            string _path = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\");
+
             List<string> _retValue = new List<string>();
             DataTable tableData = FileConnection.GetSchema("Tables");
 
-            foreach (DataRow row in tableData.Rows) { _retValue.Add(row[2].ToString()); }
+            foreach (DataRow row in tableData.Rows)
+            {
+                _path += $@"{row[2].ToString()}\";
+
+                _retValue.Add(row[2].ToString());
+
+                if (!Directory.Exists(_path)) { Directory.CreateDirectory(_path); }
+            }
 
             return _retValue;
         }

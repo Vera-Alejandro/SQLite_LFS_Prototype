@@ -81,30 +81,33 @@ namespace SQLite_LFS_Prototype
             }
         }
 
-        //might not need this
-        //manual create table command
-        //this might just be used to create the Pending, Proccessed, and Manual tables if they don't exist
-        public string CreateTable(string tableName, List<string> columns)
+        /// <summary>
+        /// This functions allowd for execution of any SQLite command.
+        /// </summary>
+        /// <param name="SQLiteCommand"></param>
+        /// <returns></returns>
+        public string ExecuteCommand(string SQLiteCommand)
         {
-            string command = $"CREATE TABLE IF NOT EXISTS {tableName} ({FormatList(columns, FormatType.All)})";
-
             try
             {
-                using (SQLiteCommand newTable = new SQLiteCommand(command, FileConnection))
+                using (SQLiteCommand newTable = new SQLiteCommand(SQLiteCommand, FileConnection))
                 {
                     newTable.ExecuteNonQuery();
                     Console.WriteLine($"Command Executed Successfully");
-                    return command;
+                    return SQLiteCommand;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 return "Command Execution Failed";
             }
-
         }
 
-        //default constructor of all the nessesary tables
+        /// <summary>
+        ///Default constructor of all the nessesary tables
+        /// </summary>
+        /// <returns></returns>
         public string CreateTable()
         {
             #region Sqlite Create Table Command
@@ -155,12 +158,20 @@ namespace SQLite_LFS_Prototype
                     return "Command Completed Successfully!";
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 return "Command Failed!";
             }
         }
 
+        /// <summary>
+        /// Formated Command to insert data
+        /// </summary>
+        /// <param name="table"></param>
+        /// <param name="columns"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
         public int InsertInto(string table, List<string> columns, List<string> values)
         {
             int retValue = 0;
@@ -184,6 +195,10 @@ namespace SQLite_LFS_Prototype
             }
         }
 
+        /// <summary>
+        /// Insert Command asking user for paramaters
+        /// </summary>
+        /// <param name="table"></param>
         public void InsertInto(string table)
         {
             string _insertCmd = $@"INSERT INTO {table} (Name, Data, ExtensionId) VALUES (@Name, @Data, @ExtensionId); SELECT last_insert_rowid();";
@@ -226,7 +241,11 @@ namespace SQLite_LFS_Prototype
             }
         }
 
-        //this is using the reader
+        /// <summary>
+        /// Displays all table data from SQLite db using stream reader
+        /// </summary>
+        /// <param name="table"></param>
+        /// <param name="columns"></param>
         public void SelectAll(string table, List<string> columns)
         {
             #region Variables
@@ -236,11 +255,12 @@ namespace SQLite_LFS_Prototype
 
             string command = $"SELECT * FROM {table};";
 
+            #endregion
+
             using (SQLiteCommand selectAll = new SQLiteCommand(command, FileConnection))
             {
                 SQLiteDataReader read = selectAll.ExecuteReader();
                 _tempColumns = GetFeilds(columns).ToList();
-                #endregion
 
                 foreach (var item in read)
                 {
@@ -287,8 +307,12 @@ namespace SQLite_LFS_Prototype
 
         #region Dapper Testing
 
-        //to use this i think you need to populate the objects first and then have the query function apply that to the db
-        public void TestInsert(RowData rowData, string table)
+        /// <summary>
+        /// Insert using Dapper
+        /// </summary>
+        /// <param name="rowData"></param>
+        /// <param name="table"></param>
+        public void Insert(RowData rowData, string table)
         {
             string _command = $@"INSERT INTO {table} (Name, Data, Extension) VALUES (@Name, @Data, @Extension); SELECT last_insert_rowid();";
 
@@ -298,7 +322,7 @@ namespace SQLite_LFS_Prototype
         }
 
         /// <summary>
-        /// This one uses Dapper
+        /// Select Row Data using Dapper
         /// </summary>
         /// <param name="Id"></param>
         /// <param name="table"></param>
@@ -313,6 +337,10 @@ namespace SQLite_LFS_Prototype
 
         #endregion
 
+        /// <summary>
+        /// Prints formated table given list of row data
+        /// </summary>
+        /// <param name="data"></param>
         void PrintTable(List<RowData> data)
         {
             int dataTabs = 0;
@@ -386,6 +414,11 @@ namespace SQLite_LFS_Prototype
             }
         }
 
+        /// <summary>
+        /// Drops selected table 
+        /// </summary>
+        /// <param name="table"></param>
+        /// <returns></returns>
         public string DropTable (string table)
         {
             string command = $"DROP TABLE IF EXISTS {table};";
@@ -399,12 +432,18 @@ namespace SQLite_LFS_Prototype
                     return "Command Successfully Executed";
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 return "Operation Failed";
             }
         }
 
+        /// <summary>
+        /// Converts data from XML file into a RowData Object given the file path
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         public RowData Deserialize(string path)
         {
             XmlSerializer reader = new XmlSerializer(typeof(RowData));
@@ -418,6 +457,11 @@ namespace SQLite_LFS_Prototype
             return _returnValue;
         }
 
+        /// <summary>
+        /// Converts objects into an XML file for later storage
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="table"></param>
         public void Serialize(RowData data, string table)
         {
             string _path;
@@ -450,6 +494,11 @@ namespace SQLite_LFS_Prototype
             _newTransaction.Close();
         }
 
+        /// <summary>
+        /// Returns all data from a table and stores it in a DataSet using Control.Database.SQLite3
+        /// </summary>
+        /// <param name="table"></param>
+        /// <returns></returns>
         public DataSet GrabData(string table)
         {
             string _command = $"SELECT * FROM {table};";
@@ -471,6 +520,11 @@ namespace SQLite_LFS_Prototype
             return data;
         }
 
+        /// <summary>
+        /// Delete Row Menu.
+        /// Waits for User input
+        /// </summary>
+        /// <param name="table"></param>
         public void DeleteRow(string table)
         {
             #region variables 
@@ -564,6 +618,11 @@ namespace SQLite_LFS_Prototype
             } while (_rowContinue);
         }
 
+        /// <summary>
+        /// Displays data from indivisual row. 
+        /// Waits for user input
+        /// </summary>
+        /// <param name="table"></param>
         public void SelectRow(string table)
         {
             #region variables 
@@ -667,6 +726,10 @@ namespace SQLite_LFS_Prototype
             } while (_rowContinue);
         }
 
+        /// <summary>
+        /// Manually process rows and move them over to Processed folder
+        /// </summary>
+        /// <param name="PrimaryTable"></param>
         public void ManuallyProcess_Testing(string PrimaryTable)
         {
 
@@ -924,6 +987,7 @@ namespace SQLite_LFS_Prototype
         #endregion
 
         #region Enums
+
         //
         //enums
         //
@@ -933,13 +997,6 @@ namespace SQLite_LFS_Prototype
             All,
             InsertFormat,
             None
-        }
-
-        public enum DeserializationPath
-        {
-            Manual = 1,
-            Pending = 2, 
-            Processed = 3
         }
 
         #endregion

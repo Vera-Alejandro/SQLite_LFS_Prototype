@@ -1,7 +1,8 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using SQLite_LFS_Prototype;
 using System.Collections.Generic;
-using CommandLine;
+using System.Data.SQLite;
+using System;
 
 namespace SQliteTesting
 {
@@ -138,7 +139,25 @@ namespace SQliteTesting
             Assert.AreEqual(expected, actual);
 
             dbTest.Disconnect();
+        }
+        
+        [TestMethod]
+        public void TestDate()
+        {
+            DateTime date = DateTime.Now;
 
+            string _formatedDate = "{0}-{1}-{2} {3}:{4}:{5}.{6}";
+            string _newDate = string.Format(_formatedDate, date.Year, date.Month, date.Day, date.Hour, date.Minute, date.Second, date.Millisecond);
+
+            DateTime _return = Convert.ToDateTime(_newDate);
+            string _secondDate = string.Format(_formatedDate, _return.Year, _return.Month, _return.Day, _return.Hour, _return.Minute, _return.Second, _return.Millisecond);
+
+            DateTime final = Convert.ToDateTime(_secondDate);
+
+            var actual = _newDate;
+            var expected = _secondDate;
+
+            Assert.AreEqual(expected, actual);
         }
 
 

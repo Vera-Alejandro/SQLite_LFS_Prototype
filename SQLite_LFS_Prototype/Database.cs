@@ -10,6 +10,7 @@ using System.Data.SQLite;
 using System.Xml.Serialization;
 using System.Collections.Generic;
 using SQLite_LFS_Prototype.Model;
+using System.Globalization;
 
 namespace SQLite_LFS_Prototype
 {
@@ -19,7 +20,7 @@ namespace SQLite_LFS_Prototype
         private FormatType CommandAction { get; set; }
         private string constr { get; set; }
 
-        private readonly string _filePath;
+        private readonly string _sqlitePath;
 
         private readonly string _main = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\");
 
@@ -32,13 +33,13 @@ namespace SQLite_LFS_Prototype
         //constructor
         public Database(string FilePath)
         {
-            _filePath = FilePath;
-            constr = $"Data Source={_filePath};Version=3;";
+            _sqlitePath = FilePath;
+            constr = $"Data Source={_sqlitePath};Version=3;";
 
 
-            if (!(File.Exists(_filePath)))
+            if (!(File.Exists(_sqlitePath)))
             {
-                SQLiteConnection.CreateFile(_filePath);
+                SQLiteConnection.CreateFile(_sqlitePath);
                 Console.WriteLine("SQLite File Created.");
             }
             
@@ -46,10 +47,13 @@ namespace SQLite_LFS_Prototype
             CommandAction = FormatType.None;
         }
 
+        //
         //Functions
+        //
+
         public bool Connect()
         {
-            if(File.Exists(_filePath) && FileConnection.State != ConnectionState.Open)
+            if(File.Exists(_sqlitePath) && FileConnection.State != ConnectionState.Open)
             {
                 FileConnection.Open();
                 Console.WriteLine("File connection made.");
@@ -64,7 +68,7 @@ namespace SQLite_LFS_Prototype
 
         public bool Disconnect()
         {
-            if(File.Exists(_filePath) && FileConnection.State != ConnectionState.Closed)
+            if(File.Exists(_sqlitePath) && FileConnection.State != ConnectionState.Closed)
             {
                 FileConnection.Close();
                 Console.WriteLine("\t\t\tDatabase successfully closed.");
@@ -103,31 +107,6 @@ namespace SQLite_LFS_Prototype
         //default constructor of all the nessesary tables
         public string CreateTable()
         {
-            #region SQLite Create Tables Command (Old)
-            string command0 =
-                "CREATE TABLE IF NOT EXISTS PendingTx (" +
-                    "Id INTEGER PRIMARY KEY NOT NULL," +
-                    "Type INT," + //Type (Enum) so should this be a foregin key 
-                    "Data BLOB NOT NULL," +
-                    "DateCreated TEXT," + //there is no date data type so text will be used instead (YYYY-MM-DD HH:MM:SS,SSS)
-                    "DateUpdated TEXT" +
-                ");" +
-                "CREATE TABLE IF NOT EXISTS ProcessedTx (" +
-                "Id INTEGER PRIMARY KEY NOT NULL," +
-                    "Type INT," + //Type (Enum) so should this be a foregin key 
-                    "Data BLOB NOT NULL," +
-                    "DateCreated TEXT," + //there is no date data type so text will be used instead (YYYY-MM-DD HH:MM:SS,SSS)
-                    "DateUpdated TEXT" +
-                ");" +
-                "CREATE TABLE IF NOT EXISTS ManualTx (" +
-                "Id INTEGER PRIMARY KEY NOT NULL," +
-                    "Type INT," + //Type (Enum) so should this be a foregin key 
-                    "Data BLOB NOT NULL," +
-                    "DateCreated TEXT," + //there is no date data type so text will be used instead (YYYY-MM-DD HH:MM:SS,SSS)
-                    "DateUpdated TEXT" +
-                ");";
-            #endregion
-
             #region Sqlite Create Table Command
             string command = "CREATE TABLE IF NOT EXISTS PendingTx (" +
                                     "Id INTEGER PRIMARY KEY NOT NULL," +
@@ -469,7 +448,6 @@ namespace SQLite_LFS_Prototype
             writer.Serialize(_newTransaction, data);
 
             _newTransaction.Close();
-
         }
 
         public DataSet GrabData(string table)
@@ -491,11 +469,6 @@ namespace SQLite_LFS_Prototype
             Console.Clear();
 
             return data;
-        }
-
-        public List<RowData> GrabData(string FolderPath)
-        {
-
         }
 
         public void DeleteRow(string table)
@@ -694,8 +667,9 @@ namespace SQLite_LFS_Prototype
             } while (_rowContinue);
         }
 
-        public void MoveData(string PrimaryTable)
+        public void ManuallyProcess_Testing(string PrimaryTable)
         {
+
             int _secondaryChoice;
             int _rowSelected;
 
@@ -707,8 +681,6 @@ namespace SQLite_LFS_Prototype
 
             data = GrabData(PrimaryTable);
             tables = GetTables();
-
-            
 
             foreach (DataRow item in data.Tables[0].Rows)
             {
@@ -738,9 +710,16 @@ namespace SQLite_LFS_Prototype
                 Console.WriteLine("\nSelect the Row to move: ");
                 if(!int.TryParse(Console.ReadLine(), out _rowSelected)) { _rowSelected = -1; }
 
+
+                //do we need another menu? 
+                // if we are just processing everything in the manual to processed then 
+                //nothing else should be needed no direction just a set process
+
+
+
                 Console.Clear();
                 Console.WriteLine("\n\n\n\n\n" +
-                            "\t\t\t\t________________Move Data Menu________________\n"+
+                            "\t\t\t\t____________Manually Process Menu_____________\n" +
                             "\t\t\t\t|--------------------------------------------|\n" +
                             "\t\t\t\t|--------------------------------------------|");
                 #region Dash Loop
@@ -778,16 +757,10 @@ namespace SQLite_LFS_Prototype
 
                 try
                 {
-                    if (_secondaryChoice == 0)
-                    {
-                        return;
-                    }
-
                     if (tables[_secondaryChoice - 1]  !=  PrimaryTable)
                     {
                         MoveToSecondary(SecondaryTable, _rowSelected);
-                        TransferData(PrimaryTable, SecondaryTable, _rowSelected);
-                        Console.WriteLine("\t\t\t\tMove Succsessful.");
+                        TransferData(PrimaryTable, _rowSelected);
                         Console.ReadKey();
                         return;
                     }
@@ -806,6 +779,7 @@ namespace SQLite_LFS_Prototype
             //Submethods
             //
 
+            //This function grabs the row from manual and moves it into processed 
             void MoveToSecondary(string Secondary, int RowId)
             {
                 string _cmd = $"INSERT INTO {Secondary} (Name, Data, ExtensionId) VALUES (@Name, @Data, @ExtensionId);";
@@ -824,14 +798,38 @@ namespace SQLite_LFS_Prototype
             }
         }
 
-        public void TransferData(string PrimaryTable, string SecondaryTable, int RowId)
+        /// <summary>
+        /// This function moves a selected file from the manual folder into the processed folder
+        /// </summary>
+        /// <param name="PrimaryTable"></param>
+        /// <param name="RowId"></param>
+        public void TransferData(string PrimaryTable, int RowId)
         {
             List<string> tables = new List<string>();
             List<RowData> rows = new List<RowData>();
 
-            tables = GetTables();
+            string source = _manual + $"{PrimaryTable}_ID_{RowId}_Tx.tranx";
+            string destination = _processed + $"{PrimaryTable}_ID_{RowId}_Tx.tranx";
+
+            try
+            {
+                File.Move(source, destination);
+                File.Delete(source);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                throw;
+            }
+
+            Console.WriteLine("\n\n\t\t\t\tFile Transfer Successful.");
         }
 
+        /// <summary>
+        /// Uses Deserialization to capture the desired file data
+        /// </summary>
+        /// <param name="table"></param>
+        /// <returns></returns>
         public RowData GetFileData(string table)
         {
             int _IdChoice;
@@ -840,7 +838,6 @@ namespace SQLite_LFS_Prototype
 
             RowData _fileData = new RowData();
             List<string>  _files = Directory.EnumerateFiles(_manual).ToList();
-
 
             if(!int.TryParse(Console.ReadLine(), out _IdChoice)) { _IdChoice = -1; }
 
@@ -862,6 +859,16 @@ namespace SQLite_LFS_Prototype
         //
         //support functions
         //
+
+        private string DateTimeSQlite(DateTime date)
+        {
+            string _formatedDate = "{0}-{1}-{2} {3}:{4}:{5}.{6}";
+
+            string _newDate = string.Format(_formatedDate, date.Year, date.Month, date.Day, date.Hour, date.Minute, date.Second, date.Millisecond);
+            
+            return _formatedDate;
+        }
+
         private string FormatList(List<string> fields, FormatType CommandType)
         {
             List<string> temp = new List<string>();

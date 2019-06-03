@@ -61,7 +61,7 @@ namespace SQLite_LFS_Prototype
                         "\t\t\t\t|------------1 - Insert----------------------|\n" +
                         "\t\t\t\t|------------2 - Delete----------------------|\n" +
                         "\t\t\t\t|------------3 - Show Table Data-------------|\n" +
-                        "\t\t\t\t|------------4 - Move Data-------------------|\n" +
+                        "\t\t\t\t|------------4 - Process Manually------------|\n" +
                         "\t\t\t\t|--------------------------------------------|\n" +
                         "\t\t\t\t|------------0 - Exit------------------------|\n" +
                         "\t\t\t\t|--------------------------------------------|\n" +
@@ -90,7 +90,7 @@ namespace SQLite_LFS_Prototype
                             break;
                         //Move Data
                         case 4:
-                            MoveDataMenu();
+                            ManuallyProcessMenu();
                             break;
                         //Exit
                         case 0:
@@ -225,7 +225,7 @@ namespace SQLite_LFS_Prototype
                         } while (_tableDataContinue);
                     }
 
-                    void MoveDataMenu()
+                    void ManuallyProcessMenu()
                     {
                         int _moveDataChoice;
                         bool _moveDataContinue;
@@ -234,11 +234,11 @@ namespace SQLite_LFS_Prototype
                         {
                             _moveDataContinue = false;
 
-                            #region Move Data Menu
+                            #region Manually Process Menu
 
                             Console.Clear();
                             Console.WriteLine("\n\n\n\n\n" +
-                            "\t\t\t\t________________Move Data Menu________________");
+                            "\t\t\t\t____________Manually Process Menu_____________");
                             PrintMenu();
                             Console.Write("\n\t\t\t\tSelect the Primary Table: ");
                             #endregion
@@ -247,16 +247,14 @@ namespace SQLite_LFS_Prototype
 
                             try
                             {
-                                if (_moveDataChoice == 0)
-                                {
-                                    return;
-                                }
-                                sqlDatabase.MoveData(tables[_moveDataChoice - 1]);
+                                if (_moveDataChoice == 0) { return; }
+                                sqlDatabase.ManuallyProcess_Testing(tables[_moveDataChoice - 1]);
                             }
-                            catch (Exception)
+                            catch (Exception ex)
                             {
                                 _moveDataContinue = true;
                                 Console.Clear();
+                                Console.WriteLine(ex.Message);
                                 Console.WriteLine("Please Enter a Valid Option");
                                 Wait();
                             }

@@ -83,10 +83,11 @@ namespace SQLite_LFS_Prototype
 
         /// <summary>
         /// This functions allowd for execution of any SQLite command.
+        /// returns true if completed successfuly and false if failed
         /// </summary>
         /// <param name="SQLiteCommand"></param>
         /// <returns></returns>
-        public string ExecuteCommand(string SQLiteCommand)
+        public bool ExecuteCommand(string SQLiteCommand)
         {
             try
             {
@@ -94,13 +95,13 @@ namespace SQLite_LFS_Prototype
                 {
                     newTable.ExecuteNonQuery();
                     Console.WriteLine($"Command Executed Successfully");
-                    return SQLiteCommand;
+                    return true;
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                return "Command Execution Failed";
+                return false;
             }
         }
 
@@ -294,27 +295,23 @@ namespace SQLite_LFS_Prototype
         /// <param name="data"></param>
         void PrintTable(List<FileData> data)
         {
-            int dataTabs = 0;
-            int nameTabs = 0;
-            int valuesDataTab = 0;
-            int valuesNameTab = 0;
+            int dataTabs = 8;
+            int nameTabs = 1;
+            int valuesDataTab;
+            int valuesNameTab;
 
             string readableData;
 
             foreach (FileData row in data)
             {
                 //check to see if data is printable 
-                if(row.ExtensionId == 1) //1 == txt
+                if (row.ExtensionId == 1) //1 == txt
                 {
                     //gets the length of the longest entry in data
                     if (row.Data.Length > dataTabs)
                     {
                         dataTabs = row.Data.Length;
                     }
-                }
-                else
-                {
-                    dataTabs = 8;
                 }
 
                 if (row.Type.Length > nameTabs)
@@ -348,16 +345,16 @@ namespace SQLite_LFS_Prototype
             //Printing Table Data
             foreach (FileData value in data)
             {
-                if(value.ExtensionId == 1) // 1 == .txt
+                if (value.ExtensionId == 1) // 1 == .txt
                 {
-                    readableData = Convert.ToString(value.Data);
+                    readableData = Encoding.ASCII.GetString(value.Data);
                 }
                 else
                 {
                     readableData = "This data is not in a readable format";
                 }
 
-                valuesDataTab = (value.Data.Length > 60) ? 1 :dataTabs - (value.Data.Length / 8);
+                valuesDataTab = (value.ExtensionId == 1) ? (value.Data.Length > 60) ? 1 : dataTabs - (value.Data.Length / 8) : dataTabs - (readableData.Length / 8);
                 valuesNameTab = nameTabs - (value.Type.Length / 8);
 
                 Console.Write($"{value.Id.ToString()}\t{value.Type}");
@@ -367,8 +364,8 @@ namespace SQLite_LFS_Prototype
                     Console.Write("\t");
                 }
 
-                if(readableData.Length > 60)
-                { 
+                if (readableData.Length > 60)
+                {
                     Console.Write($"{readableData.Remove(60)}...");
                 }
                 else
@@ -383,6 +380,8 @@ namespace SQLite_LFS_Prototype
 
                 Console.WriteLine(value.ExtensionId);
             }
+
+            Console.ReadKey();
         }
 
         /// <summary>
@@ -545,7 +544,7 @@ namespace SQLite_LFS_Prototype
             {
                 string _deleteCmd = $"DELETE FROM {table} WHERE Id = ";
 
-                PrintTable(_rowData);
+                //PrintTable(_rowData);
 
                 Console.WriteLine("\n\nWhat Row would you like to remove? Press 0 to exit.");
                 if (!int.TryParse(Console.ReadLine(), out _rowChoice)) { _rowChoice = -1; }
@@ -641,7 +640,7 @@ namespace SQLite_LFS_Prototype
             {
                 _rowContinue = false;
                 _totalRows = _rowData.Count;
-                PrintTable(_rowData);
+                //PrintTable(_rowData);
 
                 Console.WriteLine("\n\nTo view the data of a row select the Id. Press 0 to exit");
                 if (!int.TryParse(Console.ReadLine(), out _rowChoice)) { _rowChoice = -1; }
@@ -714,12 +713,14 @@ namespace SQLite_LFS_Prototype
             data = GrabData(PrimaryTable);
             tables = GetTables();
 
-            foreach (FileData item in data.Tables[0].Rows)
+            /*
+
+            foreach (RowData item in data.Tables[0].Rows)
             {
-                rows.Add(new FileData()
+                rows.Add(new RowData()
                 {
                     Id = (Int64)item.ItemArray[0],
-                    Type = (string)item.ItemArray[1],
+                    Name = (string)item.ItemArray[1],
                     Data = (string)item.ItemArray[2],
                     ExtensionId = (Int64)item.ItemArray[3]
                 });
@@ -728,7 +729,7 @@ namespace SQLite_LFS_Prototype
             }
 
 
-
+    */
 
             do
             {
@@ -898,11 +899,11 @@ namespace SQLite_LFS_Prototype
 
         private string DateTimeSQlite(DateTime date)
         {
-            string _formatedDate = "{0}-{1}-{2} {3}:{4}:{5}.{6}";
+            string _dateFormat = "{0}-{1}-{2} {3}:{4}:{5}.{6}";
 
-            string _newDate = string.Format(_formatedDate, date.Year, date.Month, date.Day, date.Hour, date.Minute, date.Second, date.Millisecond);
+            string _newDate = string.Format(_dateFormat, date.Year, date.Month, date.Day, date.Hour, date.Minute, date.Second, date.Millisecond);
             
-            return _formatedDate;
+            return _newDate;
         }
 
         private string FormatList(List<string> fields, FormatType CommandType)

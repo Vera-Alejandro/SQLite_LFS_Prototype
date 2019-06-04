@@ -264,9 +264,9 @@ namespace SQLite_LFS_Prototype
         /// </summary>
         /// <param name="rowData"></param>
         /// <param name="table"></param>
-        public void Insert(RowData rowData, string table)
+        public void Insert(FileData rowData, string table)
         {
-            string _command = $@"INSERT INTO {table} (Name, Data, Extension) VALUES (@Name, @Data, @Extension); SELECT last_insert_rowid();";
+            string _command = $@"INSERT INTO {table} (Type, Data, ExtensionId, DateCreated, DateUpdated) VALUES (@Type, @Data, @ExtensionID, @DateCreated, @DateUpdated); SELECT last_insert_rowid();";
 
             DatabaseProfile profile = new DatabaseProfile("sqlite", constr, "SQLite3");
 
@@ -279,10 +279,10 @@ namespace SQLite_LFS_Prototype
         /// <param name="Id"></param>
         /// <param name="table"></param>
         /// <returns></returns>
-        public RowData SelectData(int Id, string table)
+        public FileData SelectData(int Id, string table)
         {
             string _command = $@"SELECT Id, Name, Data, ExtensionId FROM {table} WHERE Id = @id";
-            RowData _retValue = FileConnection.Query<RowData>(_command, new { Id }).FirstOrDefault();
+            FileData _retValue = FileConnection.Query<FileData>(_command, new { Id }).FirstOrDefault();
 
             return _retValue;
         }
@@ -380,8 +380,6 @@ namespace SQLite_LFS_Prototype
 
                 Console.WriteLine(value.ExtensionId);
             }
-
-            Console.ReadKey();
         }
 
         /// <summary>
@@ -414,13 +412,13 @@ namespace SQLite_LFS_Prototype
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public RowData Deserialize(string path)
+        public FileData Deserialize(string path)
         {
-            XmlSerializer reader = new XmlSerializer(typeof(RowData));
+            XmlSerializer reader = new XmlSerializer(typeof(FileData));
 
             StreamReader _readTx = new StreamReader(path);
 
-            RowData _returnValue = (RowData)reader.Deserialize(_readTx);
+            FileData _returnValue = (FileData)reader.Deserialize(_readTx);
 
             _readTx.Close();
 
@@ -432,7 +430,7 @@ namespace SQLite_LFS_Prototype
         /// </summary>
         /// <param name="data"></param>
         /// <param name="table"></param>
-        public void Serialize(RowData data, string table)
+        public void Serialize(FileData data, string table)
         {
             string _path;
 
@@ -448,7 +446,7 @@ namespace SQLite_LFS_Prototype
 
             #endregion
 
-            XmlSerializer writer = new XmlSerializer(typeof(RowData));
+            XmlSerializer writer = new XmlSerializer(typeof(FileData));
 
             _path = _manual + $"{table}_ID_{data.Id}_Tx.tranx";
 
@@ -506,9 +504,9 @@ namespace SQLite_LFS_Prototype
 
             DataSet data = GrabData(table);
 
-            List<RowData> _rowData = new List<RowData>();
+            List<FileData> _rowData = new List<FileData>();
             List<ExtensionInfo> _extInfo = new List<ExtensionInfo>();
-            List<int> _IDs = new List<int>();
+            List<Int64> _IDs = new List<Int64>();
 
             #endregion
 
@@ -529,22 +527,24 @@ namespace SQLite_LFS_Prototype
 
             foreach (DataRow row in data.Tables[0].Rows)
             {
-                _rowData.Add(new RowData()
+                _rowData.Add(new FileData()
                 {
                     Id = (Int64)row[0],
-                    Name = (string)row[1],
-                    Data = (string)row[2],
-                    ExtensionId = (Int64)row[3]
+                    Type = (string)row[1],
+                    Data = (Byte[])row[2],
+                    DateCreated = (string)row[3],
+                    DateUpdated = (string)row[4],
+                    ExtensionId = (Int64)row[5]
                 });
 
-                _IDs.Add((int)row[0]);
+                _IDs.Add((Int64)row[0]);
             }
 
             do
             {
                 string _deleteCmd = $"DELETE FROM {table} WHERE Id = ";
 
-                //PrintTable(_rowData);
+                PrintTable(_rowData);
 
                 Console.WriteLine("\n\nWhat Row would you like to remove? Press 0 to exit.");
                 if (!int.TryParse(Console.ReadLine(), out _rowChoice)) { _rowChoice = -1; }
@@ -603,9 +603,11 @@ namespace SQLite_LFS_Prototype
             bool _rowContinue;
             bool found = false;
 
+            string readableData;
+
             DataSet data = GrabData(table);
 
-            List<RowData> _rowData = new List<RowData>();
+            List<FileData> _rowData = new List<FileData>();
             List<ExtensionInfo> _extInfo = new List<ExtensionInfo>();
 
             #endregion
@@ -626,12 +628,14 @@ namespace SQLite_LFS_Prototype
             {
                 foreach (DataRow row in data.Tables[0].Rows)
                 {
-                    _rowData.Add(new RowData()
+                    _rowData.Add(new FileData()
                     {
                         Id = (Int64)row[0],
-                        Name = (string)row[1],
-                        Data = (string)row[2],
-                        ExtensionId = (Int64)row[3]
+                        Type = (string)row[1],
+                        Data = (Byte[])row[2],
+                        DateCreated = (string)row[3],
+                        DateUpdated = (string)row[4],
+                        ExtensionId = (Int64)row[5]
                     });
                 }
             }
@@ -652,17 +656,21 @@ namespace SQLite_LFS_Prototype
 
                 try
                 {
-                    foreach (RowData item in _rowData)
+                    foreach (FileData item in _rowData)
                     {
                         if (item.Id == _rowChoice)
                         {
+                            readableData = (item.ExtensionId == 1) ? Encoding.ASCII.GetString(item.Data) : "This data is not in a readable format";
+
                             found = true;
                             Console.Clear();
-                            Console.WriteLine($"\n\n\n\n\nSelected {item.Name}\n\n");
+                            Console.WriteLine($"\n\n\n\n\nSelected {item.Type}\n\n");
                             Console.WriteLine($"ID: {item.Id}\n");
-                            Console.WriteLine($"Name: {item.Name}\n");
-                            Console.WriteLine($"Data: \n{item.Data}\n");
+                            Console.WriteLine($"Type: {item.Type}\n");
+                            Console.WriteLine($"Data: \n{readableData}\n");
                             Console.WriteLine($"ExtensionId: {item.ExtensionId}\n");
+                            Console.WriteLine($"Date Created: {item.DateCreated}\n");
+                            Console.WriteLine($"Date Updated: {item.DateUpdated}\n");
                             Console.WriteLine("\nPress Any Key To Continue...");
                             Console.ReadKey();
                             return;
@@ -712,24 +720,6 @@ namespace SQLite_LFS_Prototype
 
             data = GrabData(PrimaryTable);
             tables = GetTables();
-
-            /*
-
-            foreach (RowData item in data.Tables[0].Rows)
-            {
-                rows.Add(new RowData()
-                {
-                    Id = (Int64)item.ItemArray[0],
-                    Name = (string)item.ItemArray[1],
-                    Data = (string)item.ItemArray[2],
-                    ExtensionId = (Int64)item.ItemArray[3]
-                });
-
-                rowIds.Add(Convert.ToInt32(item.ItemArray[0]));
-            }
-
-
-    */
 
             do
             {
@@ -843,7 +833,7 @@ namespace SQLite_LFS_Prototype
         public void TransferData(string PrimaryTable, int RowId)
         {
             List<string> tables = new List<string>();
-            List<RowData> rows = new List<RowData>();
+            List<FileData> rows = new List<FileData>();
 
             string source = _manual + $"{PrimaryTable}_ID_{RowId}_Tx.tranx";
             string destination = _processed + $"{PrimaryTable}_ID_{RowId}_Tx.tranx";
@@ -867,13 +857,13 @@ namespace SQLite_LFS_Prototype
         /// </summary>
         /// <param name="table"></param>
         /// <returns></returns>
-        public RowData GetFileData(string table)
+        public FileData GetFileData(string table)
         {
             int _IdChoice;
 
             string _path;
 
-            RowData _fileData = new RowData();
+            FileData _fileData = new FileData();
             List<string>  _files = Directory.EnumerateFiles(_manual).ToList();
 
             if(!int.TryParse(Console.ReadLine(), out _IdChoice)) { _IdChoice = -1; }

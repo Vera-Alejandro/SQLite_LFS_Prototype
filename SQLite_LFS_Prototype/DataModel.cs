@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Data.SQLite;
 
-namespace SQLite_LFS_Prototype
+namespace SQLite_LFS_Prototype.Model
 {
     [Serializable]
     public partial class ExtensionInfo
@@ -20,7 +20,7 @@ namespace SQLite_LFS_Prototype
         public long Id { get; set; }
         public string Type { get; set; }
         public byte[] Data { get; set; }
-        public int ExtensionId { get; set; }
+        public long ExtensionId { get; set; }
         public string DateCreated { get; set; }
         public string DateUpdated { get; set; }
     }

@@ -12,7 +12,7 @@ namespace SQLite_LFS_Prototype
             //variables
             bool _menuContinue = true;
             List<ExtensionInfo> extData = new List<ExtensionInfo>();
-            List<RowData> selectedData = new List<RowData>();
+            List<FileData> selectedData = new List<FileData>();
             List<string> tables = new List<string>();
 
             Options results = Parser.Default.ParseArguments<Options>(args)
@@ -166,19 +166,24 @@ namespace SQLite_LFS_Prototype
 
                             if (!int.TryParse(Console.ReadLine(), out _deleteMenuChoice)) { _deleteMenuChoice = -1; }
 
+                            if (_deleteMenuChoice > tables.Count || _deleteMenuChoice < 0)
+                            {
+                                _tableDataContinue = true;
+                                Console.Clear();
+                                Console.WriteLine("Please Enter a Valid Option");
+                                Console.ReadKey();
+                            }
+
                             try
                             {
-                                if (_deleteMenuChoice == 0)
-                                {
-                                    return;
-                                }
+                                if (_deleteMenuChoice == 0) { return; }
                                 sqlDatabase.DeleteRow(tables[_deleteMenuChoice - 1]);
                             }
                             catch (Exception ex)
                             {
                                 _tableDataContinue = true;
                                 Console.Clear();
-                                Console.WriteLine("Please Enter a Valid Option");
+                                Console.WriteLine(ex.Message);
                                 throw;
                             }
 
@@ -206,19 +211,21 @@ namespace SQLite_LFS_Prototype
 
                         if (!int.TryParse(Console.ReadLine(), out _tableDataChoice)) { _tableDataChoice = -1; }
 
+                        if (_tableDataChoice > tables.Count)
+                        {
+                                _tableDataContinue = true;
+                        }
+
                             try
                             {
-                                if (_tableDataChoice == 0)
-                                {
-                                    return;
-                                }
+                                if (_tableDataChoice == 0) { return; }
                                 sqlDatabase.SelectRow(tables[_tableDataChoice - 1]);
                             }
-                            catch (Exception)
+                            catch (Exception ex)
                             {
                                 _tableDataContinue = true;
                                 Console.Clear();
-                                Console.WriteLine("Please Enter a Valid Option");
+                                Console.WriteLine(ex.Message);
                                 Wait();
                             }
 

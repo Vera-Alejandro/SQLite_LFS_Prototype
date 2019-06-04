@@ -111,7 +111,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="TestModel.cs" />
     <Compile Include="Database.cs" />
     <Compile Include="DataModel.cs" />
     <Compile Include="Program.cs" />

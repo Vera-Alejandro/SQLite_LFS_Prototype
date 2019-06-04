@@ -17,10 +17,10 @@ namespace SQLite_LFS_Prototype
     [Serializable]
     public partial class FileData
     {
-        public Int64 Id { get; set; }
-        public String Type { get; set; }
-        public Byte[] Data { get; set; }
-        public Int32 ExtensionId { get; set; }
+        public long Id { get; set; }
+        public string Type { get; set; }
+        public byte[] Data { get; set; }
+        public int ExtensionId { get; set; }
         public string DateCreated { get; set; }
         public string DateUpdated { get; set; }
     }

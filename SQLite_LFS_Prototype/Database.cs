@@ -292,31 +292,41 @@ namespace SQLite_LFS_Prototype
         /// Prints formated table given list of row data
         /// </summary>
         /// <param name="data"></param>
-        void PrintTable(List<RowData> data)
+        void PrintTable(List<FileData> data)
         {
             int dataTabs = 0;
             int nameTabs = 0;
             int valuesDataTab = 0;
             int valuesNameTab = 0;
 
-            foreach (var row in data)
+            string readableData;
+
+            foreach (FileData row in data)
             {
-                //gets the length of the longest entry in data
-                if (row.Data.Length > dataTabs)
+                //check to see if data is printable 
+                if(row.ExtensionId == 1) //1 == txt
                 {
-                    dataTabs = row.Data.Length;
+                    //gets the length of the longest entry in data
+                    if (row.Data.Length > dataTabs)
+                    {
+                        dataTabs = row.Data.Length;
+                    }
+                }
+                else
+                {
+                    dataTabs = 8;
                 }
 
-                if (row.Name.Length > nameTabs)
+                if (row.Type.Length > nameTabs)
                 {
-                    nameTabs = row.Name.Length;
+                    nameTabs = row.Type.Length;
                 }
             }
 
             dataTabs = (dataTabs > 8) ? 8 : (dataTabs / 8) + 1;
             nameTabs = (nameTabs / 8) + 1;
 
-            //printing stuff
+            //Printing Titles
             Console.Clear();
 
             Console.Write("ID\tName");
@@ -335,25 +345,35 @@ namespace SQLite_LFS_Prototype
 
             Console.WriteLine("ExtensionId");
 
-            foreach (RowData value in data)
+            //Printing Table Data
+            foreach (FileData value in data)
             {
-                valuesDataTab = (value.Data.Length > 60) ? 1 :dataTabs - (value.Data.Length / 8);
-                valuesNameTab = nameTabs - (value.Name.Length / 8);
+                if(value.ExtensionId == 1) // 1 == .txt
+                {
+                    readableData = Convert.ToString(value.Data);
+                }
+                else
+                {
+                    readableData = "This data is not in a readable format";
+                }
 
-                Console.Write($"{value.Id.ToString()}\t{value.Name}");
+                valuesDataTab = (value.Data.Length > 60) ? 1 :dataTabs - (value.Data.Length / 8);
+                valuesNameTab = nameTabs - (value.Type.Length / 8);
+
+                Console.Write($"{value.Id.ToString()}\t{value.Type}");
 
                 for (int n = 0; n < valuesNameTab; n++)
                 {
                     Console.Write("\t");
                 }
 
-                if(value.Data.Length > 60)
+                if(readableData.Length > 60)
                 { 
-                    Console.Write($"{value.Data.Remove(60)}...");
+                    Console.Write($"{readableData.Remove(60)}...");
                 }
                 else
                 {
-                    Console.Write($"{value.Data}");
+                    Console.Write(readableData);
                 }
 
                 for (int k = 0; k < valuesDataTab; k++)
@@ -683,31 +703,31 @@ namespace SQLite_LFS_Prototype
         /// <param name="PrimaryTable"></param>
         public void ManuallyProcess_Testing(string PrimaryTable)
         {
-
-            int _secondaryChoice;
-            int _rowSelected;
-
             string SecondaryTable;
 
             DataSet data = new DataSet();
-            List<RowData> rows = new List<RowData>();
+            FileData _fileData = new FileData();
+            List<FileData> rows = new List<FileData>();
             List<string> tables = new List<string>();
+            List<int> rowIds = new List<int>();
 
             data = GrabData(PrimaryTable);
             tables = GetTables();
 
-            foreach (DataRow item in data.Tables[0].Rows)
+            foreach (FileData item in data.Tables[0].Rows)
             {
-                rows.Add(new RowData()
+                rows.Add(new FileData()
                 {
                     Id = (Int64)item.ItemArray[0],
-                    Name = (string)item.ItemArray[1],
+                    Type = (string)item.ItemArray[1],
                     Data = (string)item.ItemArray[2],
                     ExtensionId = (Int64)item.ItemArray[3]
                 });
+
+                rowIds.Add(Convert.ToInt32(item.ItemArray[0]));
             }
 
-            int number = (int)data.Tables[0].Rows[0].ItemArray[0];
+
 
 
             do
@@ -715,7 +735,6 @@ namespace SQLite_LFS_Prototype
                 #region Secondary Menu
 
                 #region Menu Variables
-
                 int _dashCount;
                 int _option = 0;
 
@@ -724,15 +743,30 @@ namespace SQLite_LFS_Prototype
                 #endregion
 
                 PrintTable(rows);
+
                 Console.WriteLine("\nSelect the Row to move: ");
-                if (!int.TryParse(Console.ReadLine(), out _rowSelected)) { _rowSelected = -1; }
+                if (!int.TryParse(Console.ReadLine(), out int _rowSelected)) { _rowSelected = -1; }
+
+                if(!rowIds.Contains(_rowSelected)) { _rowSelected = -1; }
+
+
+                //transfer file data 
+                TransferData(PrimaryTable, _rowSelected);
+
+                //transfer SQLite row data
+                int _rowFound = rowIds.BinarySearch(_rowSelected);
+                _fileData = rows[_rowFound];
+
+
+
+
 
 
                 //do we need another menu? 
                 // if we are just processing everything in the manual to processed then 
                 //nothing else should be needed no direction just a set process
 
-
+                #region Potential Removal
 
                 Console.Clear();
                 Console.WriteLine("\n\n\n\n\n" +
@@ -768,9 +802,11 @@ namespace SQLite_LFS_Prototype
 
                 #endregion
 
-                if (!int.TryParse(Console.ReadLine(), out _secondaryChoice)) { _secondaryChoice = -1; }
+                if (!int.TryParse(Console.ReadLine(), out int _secondaryChoice)) { _secondaryChoice = -1; }
 
                 SecondaryTable = tables[_secondaryChoice - 1];
+
+                #endregion
 
                 try
                 {
@@ -780,10 +816,8 @@ namespace SQLite_LFS_Prototype
 
                         TransferData(PrimaryTable, _rowSelected);
 
-
                         SQLiteCommand InsertCommand;
                         //InsertCommand.Parameters.Add();
-
 
                         Console.ReadKey();
                         return;
@@ -795,6 +829,7 @@ namespace SQLite_LFS_Prototype
                     Console.WriteLine("Press Any Key to Continue...");
                     Console.ReadKey();
                 }
+
 
             } while (true);
         }

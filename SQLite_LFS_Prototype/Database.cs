@@ -136,19 +136,13 @@ namespace SQLite_LFS_Prototype
                             "CREATE TABLE IF NOT EXISTS ExtensionInfo (" +
                                 "Id INTEGER PRIMARY KEY NOT NULL," +
                                 "Extension TEXT" +
-                            ");" +
-                            "CREATE TABLE IF NOT EXISTS FileData (" +
-                                "Id INTEGER PRIMARY KEY NOT NULL," +
-                                "Name TEXT," +
-                                "Data TEXT," +
-                                "ExtensionId INTEGER," +
-                                "FOREIGN KEY (ExtensionId) REFERENCES ExtensionInfo(Id)" +
                             ");";
             #endregion
 
             #region SQLite Insert Command
-            string insertCommand = "INSERT INTO ExtensionInfo (Extension) VALUES ('txt'), ('exe'), ('pdf'), ('jpg'), ('cs'), ('c'), ('cpp');" +
-                            "INSERT INTO FileData (Name, Data, ExtensionId) VALUES ('Battleship', 'attack(); Play(); funcion();', 5), ('GreatGraph', 'tree stuff if(not tree == do nothing', 7), ('GameFinal', 'this is my csc250 Final', 6), ('Security Report', 'you cant do anything about it youre going to get hacked lol', 1), ('memegato', '*here lies funny cat meme*', 4), ('Scholarship Reward', 'you just got a full ride for being really really cool', 3);";
+
+            string insertCommand = "INSERT INTO ExtensionInfo (Extension) VALUES ('txt'), ('exe'), ('pdf'), ('jpg'), ('cs'), ('c'), ('cpp');";
+
             #endregion
 
             try
@@ -172,6 +166,9 @@ namespace SQLite_LFS_Prototype
         /// <param name="table"></param>
         public void InsertInto(string table)
         {
+            bool createParse = false;
+            bool UpdateParse = false;
+
             FileData data = new FileData();
 
             Console.Write("\n\t\t\t\tEnter the Name of the new entry.\n\t\t\t\t");
@@ -182,13 +179,81 @@ namespace SQLite_LFS_Prototype
             data.Data = Encoding.ASCII.GetBytes(Console.ReadLine());
             Console.WriteLine();
 
-            Console.Write("\t\t\t\tEnter the Extensino ID for this new entry\n\t\t\t\t");
-            data.DateCreated = Console.ReadLine();
-            Console.WriteLine();
+            do
+            {
+                Console.Write("\t\t\t\tEnter the Extensino ID for this new entry - Format {Year}-{Month}-{Day} {Hour}:{Minute}:{Second}.{Millisecond}\n\t\t\t\t");
 
-            Console.Write("\t\t\t\tEnter the Extensino ID for this new entry\n\t\t\t\t");
-            data.DateUpdated = Console.ReadLine();
-            Console.WriteLine();
+                Console.Write("\n\t\t\t\tYear: ");
+                int.TryParse(Console.ReadLine(), out int _year);
+
+                Console.Write("\n\t\t\t\tMonth: ");
+                int.TryParse(Console.ReadLine(), out int _month);
+
+                Console.Write("\n\t\t\t\tDay: ");
+                int.TryParse(Console.ReadLine(), out int _day);
+
+                Console.Write("\n\t\t\t\tHours: ");
+                int.TryParse(Console.ReadLine(), out int _hour);
+
+                Console.Write("\n\t\t\t\tMinutes: ");
+                int.TryParse(Console.ReadLine(), out int _min);
+
+                Console.Write("\n\t\t\t\tSeconds: ");
+                int.TryParse(Console.ReadLine(), out int _sec);
+
+                Console.Write("\n\t\t\t\tMilliseconds: ");
+                int.TryParse(Console.ReadLine(), out int _mil);
+
+                try
+                {
+                    data.DateCreated = new DateTime(_year, _month, _day, _hour, _min, _sec, _mil);
+                }
+                catch (Exception)
+                {
+                    createParse = true;
+                }
+
+                Console.WriteLine();
+
+            } while (createParse);
+
+            do
+            {
+                Console.Write("\t\t\t\tEnter the Extensino ID for this new entry - Format {Year}-{Month}-{Day} {Hour}:{Minute}:{Second}.{Millisecond}\n\t\t\t\t");
+
+                Console.Write("\n\t\t\t\tYear: ");
+                int.TryParse(Console.ReadLine(), out int _year);
+
+                Console.Write("\n\t\t\t\tMonth: ");
+                int.TryParse(Console.ReadLine(), out int _month);
+
+                Console.Write("\n\t\t\t\tDay: ");
+                int.TryParse(Console.ReadLine(), out int _day);
+
+                Console.Write("\n\t\t\t\tHour: ");
+                int.TryParse(Console.ReadLine(), out int _hour);
+
+                Console.Write("\n\t\t\t\tMinutes: ");
+                int.TryParse(Console.ReadLine(), out int _min);
+
+                Console.Write("\n\t\t\t\tSeconds: ");
+                int.TryParse(Console.ReadLine(), out int _sec);
+
+                Console.Write("\n\t\t\t\tMilliseconds: ");
+                int.TryParse(Console.ReadLine(), out int _mil);
+
+                try
+                {
+                    data.DateUpdated = new DateTime(_year, _month, _day, _hour, _min, _sec, _mil);
+                }
+                catch (Exception)
+                {
+                    UpdateParse = true;
+                }
+
+                Console.WriteLine();
+
+            } while (UpdateParse);
 
             InsertRow(table, data);
         }
@@ -293,13 +358,16 @@ namespace SQLite_LFS_Prototype
         /// Prints formated table given list of row data
         /// </summary>
         /// <param name="data"></param>
-        void PrintTable(List<FileData> data)
+        string PrintTable(List<FileData> data, string CommandAfter)
         {
             int dataTabs = 8;
             int nameTabs = 1;
             int valuesDataTab;
             int valuesNameTab;
+            int _retHeight;
+            int _retWidth;
 
+            string _retString;
             string readableData;
 
             foreach (FileData row in data)
@@ -324,6 +392,12 @@ namespace SQLite_LFS_Prototype
             nameTabs = (nameTabs / 8) + 1;
 
             //Printing Titles
+            _retHeight = Console.WindowHeight;
+            _retWidth = Console.WindowWidth;
+
+            Console.WindowHeight = 35;
+            Console.WindowWidth = 165;
+
             Console.Clear();
 
             Console.Write("ID\tName");
@@ -340,7 +414,7 @@ namespace SQLite_LFS_Prototype
                 Console.Write("\t");
             }
 
-            Console.WriteLine("ExtensionId");
+            Console.WriteLine("Extension ID\tDate Created\t\t\tDate Updated");
 
             //Printing Table Data
             foreach (FileData value in data)
@@ -378,8 +452,16 @@ namespace SQLite_LFS_Prototype
                     Console.Write("\t");
                 }
 
-                Console.WriteLine(value.ExtensionId);
+                Console.WriteLine($"{value.ExtensionId}\t\t{value.DateCreated}\t\t{value.DateUpdated}");
             }
+
+            Console.Write($"\n\n{CommandAfter}");
+            _retString = Console.ReadLine();
+
+            Console.WindowHeight = _retHeight;
+            Console.WindowWidth = _retWidth;
+
+            return _retString;
         }
 
         /// <summary>
@@ -521,7 +603,7 @@ namespace SQLite_LFS_Prototype
                         Extension = (string)row[1]
                     });
 
-                    _IDs.Add((int)row[0]);
+                    _IDs.Add((long)row[0]);
                 }
             }
 
@@ -532,8 +614,8 @@ namespace SQLite_LFS_Prototype
                     Id = (Int64)row[0],
                     Type = (string)row[1],
                     Data = (Byte[])row[2],
-                    DateCreated = (string)row[3],
-                    DateUpdated = (string)row[4],
+                    DateCreated = Convert.ToDateTime(row[3]),
+                    DateUpdated = Convert.ToDateTime(row[4]),
                     ExtensionId = (Int64)row[5]
                 });
 
@@ -542,22 +624,22 @@ namespace SQLite_LFS_Prototype
 
             do
             {
-                string _deleteCmd = $"DELETE FROM {table} WHERE Id = ";
 
-                PrintTable(_rowData);
+                if (!int.TryParse(PrintTable(_rowData, "What Row would you like to remove? Press 0 to exit: "), out _rowChoice)) { _rowChoice = -1; }
 
-                Console.WriteLine("\n\nWhat Row would you like to remove? Press 0 to exit.");
-                if (!int.TryParse(Console.ReadLine(), out _rowChoice)) { _rowChoice = -1; }
+                if (_rowChoice == 0) { _rowContinue = false; break; }
 
-                if (_rowChoice == 0)
+                if(_rowChoice > _IDs.Max() || _rowChoice < 0)
                 {
-                    _rowContinue = false;
+                    Console.WriteLine("Please enter a value in range.");
+                    Console.WriteLine("Press Any Key To Continue...");
+                    Console.ReadKey();
                     break;
                 }
 
                 try
                 {
-                    if (_IDs.Contains(_rowChoice))
+                    if (!_IDs.Contains(_rowChoice))
                     {
                         _rowContinue = true;
                         Console.Clear();
@@ -567,15 +649,7 @@ namespace SQLite_LFS_Prototype
                         break;
                     }
 
-                    _deleteCmd += $"{_rowChoice};";
-                    using (SQLiteCommand _deleteRow = new SQLiteCommand(_deleteCmd, FileConnection))
-                    {
-                        _rowsAffected = _deleteRow.ExecuteNonQuery();
-                        _rowData.RemoveAt(_rowChoice - 1);
-                        Console.WriteLine($"Executing Command: {_rowsAffected} row(s) effected.");
-                        Console.WriteLine("Press Any Key To Continue...");
-                        Console.ReadKey();
-                    }
+                    _rowData = DeleteRow(table, _rowChoice, _rowData);
                 }
                 catch (Exception ex)
                 {
@@ -633,8 +707,8 @@ namespace SQLite_LFS_Prototype
                         Id = (Int64)row[0],
                         Type = (string)row[1],
                         Data = (Byte[])row[2],
-                        DateCreated = (string)row[3],
-                        DateUpdated = (string)row[4],
+                        DateCreated = Convert.ToDateTime(row[3]),
+                        DateUpdated = Convert.ToDateTime(row[4]),
                         ExtensionId = (Int64)row[5]
                     });
                 }
@@ -644,10 +718,11 @@ namespace SQLite_LFS_Prototype
             {
                 _rowContinue = false;
                 _totalRows = _rowData.Count;
-                //PrintTable(_rowData);
 
-                Console.WriteLine("\n\nTo view the data of a row select the Id. Press 0 to exit");
-                if (!int.TryParse(Console.ReadLine(), out _rowChoice)) { _rowChoice = -1; }
+                if (!int.TryParse(PrintTable(_rowData, "To view the data of a row select the Id. Press 0 to exit: "), out _rowChoice)) { _rowChoice = -1; }
+
+                int consoleWidth = Console.WindowWidth;
+                int consoleHeight = Console.WindowHeight;
 
                 if (_rowChoice == 0)
                 {
@@ -710,115 +785,49 @@ namespace SQLite_LFS_Prototype
         /// <param name="PrimaryTable"></param>
         public void ManuallyProcess_Testing(string PrimaryTable)
         {
-            string SecondaryTable;
-
             DataSet data = new DataSet();
             FileData _fileData = new FileData();
             List<FileData> rows = new List<FileData>();
-            List<string> tables = new List<string>();
-            List<int> rowIds = new List<int>();
+            List<int> rowIDs = new List<int>();
 
             data = GrabData(PrimaryTable);
-            tables = GetTables();
+
+            if(PrimaryTable == "ExtensionInfo") { return; }
+
+            foreach (DataRow row in data.Tables[0].Rows)
+            {
+                rows.Add(new FileData
+                {
+                    Id = (long)row[0],
+                    Type = (string)row[1],
+                    Data = (byte[])row[2],
+                    DateCreated = Convert.ToDateTime(row[3]),
+                    DateUpdated = Convert.ToDateTime(row[4]),
+                    ExtensionId = (long)row[5]
+                });
+
+                rowIDs.Add(Convert.ToInt32(row[0]));
+            }
 
             do
             {
-                #region Secondary Menu
+                if (!int.TryParse(PrintTable(rows, "Select the Row to move. Press 0 to exit: "), out int _rowSelected)) { _rowSelected = -1; }
 
-                #region Menu Variables
-                int _dashCount;
-                int _option = 0;
+                if(!rowIDs.Contains(_rowSelected)) { _rowSelected = -1; }
 
-                string _nameMenu;
+                if(_rowSelected == 0) { return; }
 
-                #endregion
-
-                PrintTable(rows);
-
-                Console.WriteLine("\nSelect the Row to move: ");
-                if (!int.TryParse(Console.ReadLine(), out int _rowSelected)) { _rowSelected = -1; }
-
-                if(!rowIds.Contains(_rowSelected)) { _rowSelected = -1; }
-
-
-                //transfer file data 
-                TransferData(PrimaryTable, _rowSelected);
-
-                //transfer SQLite row data
-                int _rowFound = rowIds.BinarySearch(_rowSelected);
-                _fileData = rows[_rowFound];
-
-
-
-
-
-
-                //do we need another menu? 
-                // if we are just processing everything in the manual to processed then 
-                //nothing else should be needed no direction just a set process
-
-                #region Potential Removal
-
-                Console.Clear();
-                Console.WriteLine("\n\n\n\n\n" +
-                            "\t\t\t\t____________Manually Process Menu_____________\n" +
-                            "\t\t\t\t|--------------------------------------------|\n" +
-                            "\t\t\t\t|--------------------------------------------|");
-                #region Dash Loop
-
-                foreach (string table in tables)
+                if(_rowSelected != -1)
                 {
-                    if (table == PrimaryTable)
-                    {
-                        _nameMenu = $"\t\t\t\t|---Primary--{_option + 1} - {table}";
-                    }
-                    else
-                    {
-                        _nameMenu = $"\t\t\t\t|------------{_option + 1} - {table}";
-                    }
+                    //transfer SQLite row data
+                    int _rowFound = rowIDs.BinarySearch(_rowSelected);
+                    _fileData = rows[_rowFound];
+                    InsertRow("ProcessedTx", _fileData);
+                    rows = DeleteRow(PrimaryTable, _rowSelected, rows);
+                    rowIDs.RemoveAt(_rowFound);
 
-                    Console.Write(_nameMenu);
-                    _dashCount = (49 - _nameMenu.Length);
-                    for (int i = 0; i < _dashCount; i++) { Console.Write("-"); }
-                    Console.WriteLine("|");
-                    _option++;
-                }
-
-                #endregion
-                Console.Write("\t\t\t\t|--------------------------------------------|\n" +
-                            "\t\t\t\t|------------0 - Back------------------------|\n" +
-                            "\t\t\t\t|--------------------------------------------|\n" +
-                            "\t\t\t\t|____________________________________________|\n" +
-                            "\t\t\t\tSelect the Secondary Table: ");
-
-                #endregion
-
-                if (!int.TryParse(Console.ReadLine(), out int _secondaryChoice)) { _secondaryChoice = -1; }
-
-                SecondaryTable = tables[_secondaryChoice - 1];
-
-                #endregion
-
-                try
-                {
-                    if (tables[_secondaryChoice - 1] != PrimaryTable)
-                    {
-                        DataSet _Unfilte = GrabData(PrimaryTable);
-
-                        TransferData(PrimaryTable, _rowSelected);
-
-                        SQLiteCommand InsertCommand;
-                        //InsertCommand.Parameters.Add();
-
-                        Console.ReadKey();
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    Console.WriteLine("Press Any Key to Continue...");
-                    Console.ReadKey();
+                    //transfer file data 
+                    TransferData(PrimaryTable, _rowSelected);
                 }
 
 
@@ -850,6 +859,7 @@ namespace SQLite_LFS_Prototype
             }
 
             Console.WriteLine("\n\n\t\t\t\tFile Transfer Successful.");
+            Console.ReadKey();
         }
 
         /// <summary>
@@ -974,8 +984,35 @@ namespace SQLite_LFS_Prototype
 
                 rowsAffected = insertCommand.ExecuteNonQuery();
 
-                Console.WriteLine($"Command Executed Successfully. {rowsAffected} row(s) affected.");
+                Console.WriteLine($"\n\n\t\t\t\tCommand Executed Successfully. {rowsAffected} row(s) affected.");
                 Console.ReadKey();
+            }
+        }
+
+        private List<FileData> DeleteRow(string Table, int RowID, List<FileData> _rowData)
+        {
+            int _rowsAffected;
+            int removeIndex = 0;
+
+            foreach (FileData item in _rowData)
+            {
+                if(item.Id == RowID) { break; }
+
+                removeIndex++;
+            }
+
+            string _deleteCmd = $"DELETE FROM {Table} WHERE Id = ";
+
+            _deleteCmd += $"{RowID};";
+            using (SQLiteCommand _deleteRow = new SQLiteCommand(_deleteCmd, FileConnection))
+            {
+                _rowsAffected = _deleteRow.ExecuteNonQuery();
+                _rowData.RemoveAt(removeIndex);
+                Console.WriteLine($"Executing Command: {_rowsAffected} row(s) effected.");
+                Console.WriteLine("Press Any Key To Continue...");
+                Console.ReadKey();
+
+                return _rowData;
             }
         }
 

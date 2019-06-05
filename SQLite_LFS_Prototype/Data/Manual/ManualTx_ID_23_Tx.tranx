@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<FileData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Id>23</Id>
+  <Type>laptops</Type>
+  <Data>ZGVsbCB4cHMgMTMgaXMgYSBuaWNlIGxhcHRvcCBhbmQgaSB3aXNoIGkgaGFkIG9uZS4uLiBpIG1pZ2h0IGp1c3QgYnV5IG1lIG9uZSBpZiBkaWFuYSBkb2VuJ3Qgd2FudCBpdC4gSSBhbHNvIHdhbnQgdG8gZ2V0IHRoZSBTYW1zdW5nIFMxMCBiZWNhc3VlIGl0IGxvb2tzIGRvcGUgYXNmLg==</Data>
+  <ExtensionId>1</ExtensionId>
+  <DateCreated>2019-06-05T11:30:55.772</DateCreated>
+  <DateUpdated>2019-06-05T11:30:55.774</DateUpdated>
+</FileData>

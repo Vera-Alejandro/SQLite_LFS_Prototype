@@ -166,12 +166,11 @@ namespace SQLite_LFS_Prototype
         /// <param name="table"></param>
         public void InsertInto(string table)
         {
-            bool createParse = false;
-            bool UpdateParse = false;
-
             FileData data = new FileData();
 
-            Console.Write("\n\t\t\t\tEnter the Name of the new entry.\n\t\t\t\t");
+            DateTime _currentDateTime = DateTime.Now;
+
+            Console.Write("\n\t\t\t\tEnter the Type of the new entry.\n\t\t\t\t");
             data.Type = Console.ReadLine();
             Console.WriteLine();
 
@@ -179,81 +178,31 @@ namespace SQLite_LFS_Prototype
             data.Data = Encoding.ASCII.GetBytes(Console.ReadLine());
             Console.WriteLine();
 
-            do
-            {
-                Console.Write("\t\t\t\tEnter the Extensino ID for this new entry - Format {Year}-{Month}-{Day} {Hour}:{Minute}:{Second}.{Millisecond}\n\t\t\t\t");
+            Console.Write("\t\t\t\tEnter the Extension ID for this new entry\n\t\t\t\t");
+            data.ExtensionId = Convert.ToInt32(Console.ReadLine());
+            Console.WriteLine();
 
-                Console.Write("\n\t\t\t\tYear: ");
-                int.TryParse(Console.ReadLine(), out int _year);
+            data.DateCreated = new DateTime
+                (
+                    _currentDateTime.Year, 
+                    _currentDateTime.Month, 
+                    _currentDateTime.Day, 
+                    _currentDateTime.Hour, 
+                    _currentDateTime.Minute, 
+                    _currentDateTime.Second, 
+                    Convert.ToInt32(_currentDateTime.Millisecond) % 1000
+                ); ;
 
-                Console.Write("\n\t\t\t\tMonth: ");
-                int.TryParse(Console.ReadLine(), out int _month);
-
-                Console.Write("\n\t\t\t\tDay: ");
-                int.TryParse(Console.ReadLine(), out int _day);
-
-                Console.Write("\n\t\t\t\tHours: ");
-                int.TryParse(Console.ReadLine(), out int _hour);
-
-                Console.Write("\n\t\t\t\tMinutes: ");
-                int.TryParse(Console.ReadLine(), out int _min);
-
-                Console.Write("\n\t\t\t\tSeconds: ");
-                int.TryParse(Console.ReadLine(), out int _sec);
-
-                Console.Write("\n\t\t\t\tMilliseconds: ");
-                int.TryParse(Console.ReadLine(), out int _mil);
-
-                try
-                {
-                    data.DateCreated = new DateTime(_year, _month, _day, _hour, _min, _sec, _mil);
-                }
-                catch (Exception)
-                {
-                    createParse = true;
-                }
-
-                Console.WriteLine();
-
-            } while (createParse);
-
-            do
-            {
-                Console.Write("\t\t\t\tEnter the Extensino ID for this new entry - Format {Year}-{Month}-{Day} {Hour}:{Minute}:{Second}.{Millisecond}\n\t\t\t\t");
-
-                Console.Write("\n\t\t\t\tYear: ");
-                int.TryParse(Console.ReadLine(), out int _year);
-
-                Console.Write("\n\t\t\t\tMonth: ");
-                int.TryParse(Console.ReadLine(), out int _month);
-
-                Console.Write("\n\t\t\t\tDay: ");
-                int.TryParse(Console.ReadLine(), out int _day);
-
-                Console.Write("\n\t\t\t\tHour: ");
-                int.TryParse(Console.ReadLine(), out int _hour);
-
-                Console.Write("\n\t\t\t\tMinutes: ");
-                int.TryParse(Console.ReadLine(), out int _min);
-
-                Console.Write("\n\t\t\t\tSeconds: ");
-                int.TryParse(Console.ReadLine(), out int _sec);
-
-                Console.Write("\n\t\t\t\tMilliseconds: ");
-                int.TryParse(Console.ReadLine(), out int _mil);
-
-                try
-                {
-                    data.DateUpdated = new DateTime(_year, _month, _day, _hour, _min, _sec, _mil);
-                }
-                catch (Exception)
-                {
-                    UpdateParse = true;
-                }
-
-                Console.WriteLine();
-
-            } while (UpdateParse);
+            data.DateUpdated = new DateTime
+                (
+                _currentDateTime.Year,
+                    _currentDateTime.Month,
+                    _currentDateTime.Day,
+                    _currentDateTime.Hour,
+                    _currentDateTime.Minute,
+                    _currentDateTime.Second,
+                    Convert.ToInt32(_currentDateTime.Millisecond) % 1000
+                );
 
             InsertRow(table, data);
         }
@@ -458,6 +407,8 @@ namespace SQLite_LFS_Prototype
             Console.Write($"\n\n{CommandAfter}");
             _retString = Console.ReadLine();
 
+            Console.Clear();
+
             Console.WindowHeight = _retHeight;
             Console.WindowWidth = _retWidth;
 
@@ -624,8 +575,8 @@ namespace SQLite_LFS_Prototype
 
             do
             {
-
-                if (!int.TryParse(PrintTable(_rowData, "What Row would you like to remove? Press 0 to exit: "), out _rowChoice)) { _rowChoice = -1; }
+                string _parseStr = PrintTable(_rowData, "What Row would you like to remove? Press 0 to exit: ");
+                if (!int.TryParse(_parseStr, out _rowChoice)) { _rowChoice = -1; }
 
                 if (_rowChoice == 0) { _rowContinue = false; break; }
 
@@ -719,7 +670,8 @@ namespace SQLite_LFS_Prototype
                 _rowContinue = false;
                 _totalRows = _rowData.Count;
 
-                if (!int.TryParse(PrintTable(_rowData, "To view the data of a row select the Id. Press 0 to exit: "), out _rowChoice)) { _rowChoice = -1; }
+                string _parseStr = PrintTable(_rowData, "To view the data of a row select the Id. Press 0 to exit: ");
+                if (!int.TryParse(_parseStr, out _rowChoice)) { _rowChoice = -1; }
 
                 int consoleWidth = Console.WindowWidth;
                 int consoleHeight = Console.WindowHeight;
@@ -811,7 +763,8 @@ namespace SQLite_LFS_Prototype
 
             do
             {
-                if (!int.TryParse(PrintTable(rows, "Select the Row to move. Press 0 to exit: "), out int _rowSelected)) { _rowSelected = -1; }
+                string _parseStr = PrintTable(rows, "Select the Row to move. Press 0 to exit: ");
+                if (!int.TryParse(_parseStr, out int _rowSelected)) { _rowSelected = -1; }
 
                 if(!rowIDs.Contains(_rowSelected)) { _rowSelected = -1; }
 
@@ -876,7 +829,8 @@ namespace SQLite_LFS_Prototype
             FileData _fileData = new FileData();
             List<string>  _files = Directory.EnumerateFiles(_manual).ToList();
 
-            if(!int.TryParse(Console.ReadLine(), out _IdChoice)) { _IdChoice = -1; }
+            string _parseStr = Console.ReadLine();
+            if(!int.TryParse(_parseStr, out _IdChoice)) { _IdChoice = -1; }
 
             foreach (string file in _files)
             {
@@ -966,13 +920,14 @@ namespace SQLite_LFS_Prototype
         /// <param name="Collection"></param>
         private void InsertRow(string Table, FileData data)
         {
-            string _command = $"INSERT INTO {Table} (Type, Data, DateCreated, DateUpdated) VALUES (@Type, @Data, @DateCreated, @DateUpdated);";
+            string _command = $"INSERT INTO {Table} (Type, Data, ExtensionId, DateCreated, DateUpdated) VALUES (@Type, @Data, @ExtensionId, @DateCreated, @DateUpdated);";
             int rowsAffected;
 
-            SQLiteParameter[] parameters = 
+            SQLiteParameter[] parameters =
             {
                 new SQLiteParameter(@"Type", data.Type),
                 new SQLiteParameter(@"Data", data.Data),
+                new SQLiteParameter(@"ExtensionId", data.ExtensionId),
                 new SQLiteParameter(@"DateCreated", data.DateCreated),
                 new SQLiteParameter(@"DateUpdated", data.DateUpdated)
             };

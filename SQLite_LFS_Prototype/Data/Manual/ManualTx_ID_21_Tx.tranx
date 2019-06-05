@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<FileData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Id>21</Id>
+  <Type>Pokemon</Type>
+  <Data>a2VuZHJpY2sgbGFtYXIgaXMgYSBkb3BlIHJhcHBlciwgaGltIGFuZCBDb2xlIG5lZWQgdG8gZHJvcCBzb21ldGhpbmcgYmVjYXVzZSBJIE5FRUQgdGhhdCBhbGJ1bSwgYWxzbyBST1REMyBuZWVkcyB0byBkcm9wIHNvb24uIERyZWFtdmlsbGUgc2FpZCBBcHJpbCByZWxlYXNlIGJ1dCBub3cgaXQncyBqdW5lIGFuZCBzdGlsbCBub3RoaW5nLi4uIGFtIGEgbGl0dGxlIHNhbHR5Lg==</Data>
+  <ExtensionId>1</ExtensionId>
+  <DateCreated>2019-06-05T11:22:18.816</DateCreated>
+  <DateUpdated>2019-06-05T11:22:18.818</DateUpdated>
+</FileData>

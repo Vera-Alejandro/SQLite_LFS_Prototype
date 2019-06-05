@@ -122,6 +122,7 @@ namespace SQLite_LFS_Prototype
                             Console.WriteLine("\n\n\n\n\n" +
                                         "\t\t\t\t_______________Insert Data Menu_______________");
                             PrintMenu();
+                            Console.Write("What Table would you like to Add a row to: ");
 
                             #endregion
 
@@ -299,10 +300,11 @@ namespace SQLite_LFS_Prototype
                         }
 
                         #endregion
-                        Console.WriteLine("\t\t\t\t|--------------------------------------------|\n" +
+                        Console.Write("\t\t\t\t|--------------------------------------------|\n" +
                                     "\t\t\t\t|------------0 - Back------------------------|\n" +
                                     "\t\t\t\t|--------------------------------------------|\n" +
-                                    "\t\t\t\t|____________________________________________|");
+                                    "\t\t\t\t|____________________________________________|\n" +
+                                    "\t\t\t\t");
                     }
                 }
             }

@@ -447,13 +447,14 @@ namespace SQLite_LFS_Prototype
         /// <returns></returns>
         public FileData Deserialize(string path)
         {
+            FileData _returnValue;
+
             XmlSerializer reader = new XmlSerializer(typeof(FileData));
 
-            StreamReader _readTx = new StreamReader(path);
-
-            FileData _returnValue = (FileData)reader.Deserialize(_readTx);
-
-            _readTx.Close();
+            using (Stream _readTx = new FileStream(path, FileMode.Open))
+            {
+                _returnValue = (FileData)reader.Deserialize(_readTx);
+            }
 
             return _returnValue;
         }
@@ -764,11 +765,11 @@ namespace SQLite_LFS_Prototype
             do
             {
                 string _parseStr = PrintTable(rows, "Select the Row to move. Press 0 to exit: ");
-                if (!int.TryParse(_parseStr, out int _rowSelected)) { _rowSelected = -1; }
-
-                if(!rowIDs.Contains(_rowSelected)) { _rowSelected = -1; }
+                int _rowSelected = int.Parse(_parseStr);
 
                 if(_rowSelected == 0) { return; }
+
+                if(!rowIDs.Contains(_rowSelected)) { _rowSelected = -1; }
 
                 if(_rowSelected != -1)
                 {
@@ -845,6 +846,58 @@ namespace SQLite_LFS_Prototype
             return _fileData;
         }
 
+        public void Sync()
+        {
+            DataSet dataSet = new DataSet();
+
+            List<FileData> _dataFromDB = new List<FileData>();
+            List<FileData> _dataFromFile = new List<FileData>();
+
+            List<bool> _dataCompare = new List<bool>();
+
+            List<string> _dirFiles = new List<string>();
+            List<string> _tables = new List<string>
+            { 
+                "ManualTx",
+                "PendingTx",
+                "ProcessedTx"
+            };
+
+            foreach (string table in _tables)
+            {
+                dataSet = GrabData(table);
+
+                foreach (DataRow row in dataSet.Tables[0].Rows)
+                {
+                    _dataFromDB.Add(new FileData
+                    {
+                        Id = (long)row[0],
+                        Type = (string)row[1],
+                        Data = (byte[])row[2],
+                        DateCreated = Convert.ToDateTime(row[3]),
+                        DateUpdated = Convert.ToDateTime(row[4]),
+                        ExtensionId = (long)row[5]
+                    });
+                }
+
+                _dirFiles = Directory.EnumerateFiles(_manual).ToList();
+
+                foreach (string _file in _dirFiles)
+                {
+                    _dataFromFile.Add(Deserialize(_file));
+                }
+
+
+                foreach (FileData item in _dataFromFile)
+                {
+                    _dataCompare.Add(_dataFromDB.Contains(item, new FileDataComparer()));
+                }
+    
+                Console.ReadKey();
+
+            }
+        }
+
         #region Support Functions
 
         //
@@ -910,6 +963,11 @@ namespace SQLite_LFS_Prototype
             }
 
             return _retValue;
+        }
+        
+        public Dictionary<long, string> GetExtensionInfo()
+        {
+            return null;
         }
 
         /// <summary>
@@ -987,5 +1045,43 @@ namespace SQLite_LFS_Prototype
         }
 
         #endregion
+    }
+
+
+
+    class FileDataComparer : IEqualityComparer<FileData>
+    {
+        public bool Equals(FileData Data1, FileData Data2)
+        {
+            if (Data1 == null && Data2 == null) { return true; }
+            else if (Data1 == null || Data2 == null) { return false; }
+            else if (
+                Data1.Id == Data2.Id &&                                                         //check ID
+                Data1.Type == Data2.Type &&                                                     //check Type
+                Encoding.ASCII.GetString(Data1.Data) == Encoding.ASCII.GetString(Data2.Data) && //check Data
+                Data1.ExtensionId == Data2.ExtensionId &&                                       //check Extension ID
+                Data1.DateCreated.Year == Data2.DateCreated.Year &&                             //check Date Created Year
+                Data1.DateCreated.Month == Data2.DateCreated.Month &&                           //Check Date Created Month
+                Data1.DateCreated.Day == Data2.DateCreated.Day &&                               //Check Date Created Day
+                Data1.DateCreated.Hour == Data2.DateCreated.Hour &&                             //Check Date Created Hour
+                Data1.DateCreated.Minute == Data2.DateCreated.Minute &&                         //Check Date Created Minute
+                Data1.DateCreated.Second == Data2.DateCreated.Second &&                         //Check Date Created Second
+                Data1.DateCreated.Millisecond == Data2.DateCreated.Millisecond &&               //Check Date Created Millisecond
+                Data1.DateUpdated.Year == Data2.DateUpdated.Year &&                             //check Date Updated Year
+                Data1.DateUpdated.Month == Data2.DateUpdated.Month &&                           //Check Date Updated Month
+                Data1.DateUpdated.Day == Data2.DateUpdated.Day &&                               //Check Date Updated Day
+                Data1.DateUpdated.Hour == Data2.DateUpdated.Hour &&                             //Check Date Updated Hour
+                Data1.DateUpdated.Minute == Data2.DateUpdated.Minute &&                         //Check Date Updated Minute
+                Data1.DateUpdated.Second == Data2.DateUpdated.Second &&                         //Check Date Updated Second
+                Data1.DateUpdated.Millisecond == Data2.DateUpdated.Millisecond                  //Check Date Updated Millisecond
+            ) { return true; }
+            else { return false; }
+        }
+
+        public int GetHashCode(FileData Data)
+        {
+            int _hashCode = Data.DateUpdated.Second ^ Data.DateCreated.Second ^ Data.DateCreated.Minute;
+            return _hashCode.GetHashCode();
+        }
     }
 }

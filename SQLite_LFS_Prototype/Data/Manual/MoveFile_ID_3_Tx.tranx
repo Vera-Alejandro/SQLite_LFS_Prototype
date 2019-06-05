@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<RowData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
-  <Id>3</Id>
-  <Name>GameFinal</Name>
-  <ExtensionId>6</ExtensionId>
-  <Data>this is my csc250 Final</Data>
-</RowData>

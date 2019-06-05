@@ -37,6 +37,8 @@ namespace SQLite_LFS_Prototype
             //grab the table info
             tables = sqlDatabase.GetTables();
 
+            sqlDatabase.Sync();
+
             Menu();
 
             sqlDatabase.Disconnect();
@@ -235,28 +237,15 @@ namespace SQLite_LFS_Prototype
 
                     void ManuallyProcessMenu()
                     {
-                        int _moveDataChoice;
                         bool _moveDataContinue;
 
                         do
                         {
                             _moveDataContinue = false;
-
-                            #region Manually Process Menu
-
-                            Console.Clear();
-                            Console.WriteLine("\n\n\n\n\n" +
-                            "\t\t\t\t____________Manually Process Menu_____________");
-                            PrintMenu();
-                            Console.Write("\n\t\t\t\tSelect the Primary Table: ");
-                            #endregion
-
-                            if (!int.TryParse(Console.ReadLine(), out _moveDataChoice)) { _moveDataChoice = -1; }
-
+                            
                             try
                             {
-                                if (_moveDataChoice == 0) { return; }
-                                sqlDatabase.ManuallyProcess_Testing(tables[_moveDataChoice - 1]);
+                                sqlDatabase.ManuallyProcess_Testing("ManualTx");
                             }
                             catch (Exception ex)
                             {

@@ -22,13 +22,13 @@ namespace SQLite_LFS_Prototype
 
         private readonly string _sqlitePath;
 
-        private readonly string _main = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\");
+        private readonly string _manual = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\ManualTx\");
 
-        private readonly string _manual = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Manual\");
+        private readonly string _pending = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\PendingTx\");
 
-        private readonly string _pending = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Pending\");
+        private readonly string _processed = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\ProcessedTx\");
 
-        private readonly string _processed = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\Processed\");
+        private readonly string _extensions = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\ExtensionInfo\");
 
         //constructor
         public Database(string FilePath)
@@ -42,7 +42,7 @@ namespace SQLite_LFS_Prototype
                 SQLiteConnection.CreateFile(_sqlitePath);
                 Console.WriteLine("SQLite File Created.");
             }
-            
+
             FileConnection = new SQLiteConnection(constr);
             CommandAction = FormatType.None;
         }
@@ -53,7 +53,7 @@ namespace SQLite_LFS_Prototype
 
         public bool Connect()
         {
-            if(File.Exists(_sqlitePath) && FileConnection.State != ConnectionState.Open)
+            if (File.Exists(_sqlitePath) && FileConnection.State != ConnectionState.Open)
             {
                 FileConnection.Open();
                 Console.WriteLine("File connection made.");
@@ -68,7 +68,7 @@ namespace SQLite_LFS_Prototype
 
         public bool Disconnect()
         {
-            if(File.Exists(_sqlitePath) && FileConnection.State != ConnectionState.Closed)
+            if (File.Exists(_sqlitePath) && FileConnection.State != ConnectionState.Closed)
             {
                 FileConnection.Close();
                 Console.WriteLine("\t\t\tDatabase successfully closed.");
@@ -184,12 +184,12 @@ namespace SQLite_LFS_Prototype
 
             data.DateCreated = new DateTime
                 (
-                    _currentDateTime.Year, 
-                    _currentDateTime.Month, 
-                    _currentDateTime.Day, 
-                    _currentDateTime.Hour, 
-                    _currentDateTime.Minute, 
-                    _currentDateTime.Second, 
+                    _currentDateTime.Year,
+                    _currentDateTime.Month,
+                    _currentDateTime.Day,
+                    _currentDateTime.Hour,
+                    _currentDateTime.Minute,
+                    _currentDateTime.Second,
                     Convert.ToInt32(_currentDateTime.Millisecond) % 1000
                 ); ;
 
@@ -260,7 +260,7 @@ namespace SQLite_LFS_Prototype
             //data corresponding to table columns
             foreach (string entry in _tableData)
             {
-                if(n % 3 == 0 && n > 1)
+                if (n % 3 == 0 && n > 1)
                 {
                     Console.Write("\n");
                 }
@@ -420,7 +420,7 @@ namespace SQLite_LFS_Prototype
         /// </summary>
         /// <param name="table"></param>
         /// <returns></returns>
-        public string DropTable (string table)
+        public string DropTable(string table)
         {
             string command = $"DROP TABLE IF EXISTS {table};";
 
@@ -464,36 +464,40 @@ namespace SQLite_LFS_Prototype
         /// </summary>
         /// <param name="data"></param>
         /// <param name="table"></param>
-        public void Serialize(FileData data, string table)
+        public bool Serialize(FileData data, string table)
         {
-            string _path;
-
-            #region File Exist & Create Check
-
-            if(!Directory.Exists(_main)) { Directory.CreateDirectory(_main); }
-
-            if (!Directory.Exists(_manual)) { Directory.CreateDirectory(_manual); }
-
-            if (!Directory.Exists(_pending)) { Directory.CreateDirectory(_pending); }
-
-            if(!Directory.Exists(_processed)) { Directory.CreateDirectory(_processed); }
-
-            #endregion
+            string _path = "";
 
             XmlSerializer writer = new XmlSerializer(typeof(FileData));
 
-            _path = _manual + $"{table}_ID_{data.Id}_Tx.tranx";
+            if (table == "ManualTx") { _path = _manual + $"{table}_ID_{data.Id}_Tx.tranx"; }
+        
+            if(table == "PendingTx") { _path = _pending + $"{table}_ID_{data.Id}_Tx.tranx"; }
 
-            if (File.Exists(_path))
+            if(table == "ProcessedTx") { _path = _processed + $"{table}_ID_{data.Id}_Tx.tranx"; }
+
+            if(table == "Extensioninfo") { _path = _extensions + $"{table}_ID_{data.Id}_Tx.tranx"; }
+
+            if(_path == "") { return false; }
+
+            try
             {
-                File.Delete(_path);
+                if (File.Exists(_path))
+                {
+                    File.Delete(_path);
+                }
+
+                FileStream _newTransaction = _newTransaction = File.Create(_path);
+
+                writer.Serialize(_newTransaction, data);
+
+                _newTransaction.Close();
+                return true;
             }
-
-            FileStream _newTransaction = _newTransaction = File.Create(_path);
-            
-            writer.Serialize(_newTransaction, data);
-
-            _newTransaction.Close();
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         /// <summary>
@@ -547,7 +551,7 @@ namespace SQLite_LFS_Prototype
             //sets the data to the correst List
             if (table == "ExtensionInfo")
             {
-                foreach(DataRow row in data.Tables[0].Rows)
+                foreach (DataRow row in data.Tables[0].Rows)
                 {
                     _extInfo.Add(new ExtensionInfo()
                     {
@@ -581,7 +585,7 @@ namespace SQLite_LFS_Prototype
 
                 if (_rowChoice == 0) { _rowContinue = false; break; }
 
-                if(_rowChoice > _IDs.Max() || _rowChoice < 0)
+                if (_rowChoice > _IDs.Max() || _rowChoice < 0)
                 {
                     Console.WriteLine("Please enter a value in range.");
                     Console.WriteLine("Press Any Key To Continue...");
@@ -705,8 +709,8 @@ namespace SQLite_LFS_Prototype
                         }
                         Serialize(item, table);
                     }
-                    
-                    if(!found)
+
+                    if (!found)
                     {
                         if (_rowChoice > _totalRows)
                         {
@@ -745,7 +749,7 @@ namespace SQLite_LFS_Prototype
 
             data = GrabData(PrimaryTable);
 
-            if(PrimaryTable == "ExtensionInfo") { return; }
+            if (PrimaryTable == "ExtensionInfo") { return; }
 
             foreach (DataRow row in data.Tables[0].Rows)
             {
@@ -767,11 +771,11 @@ namespace SQLite_LFS_Prototype
                 string _parseStr = PrintTable(rows, "Select the Row to move. Press 0 to exit: ");
                 int _rowSelected = int.Parse(_parseStr);
 
-                if(_rowSelected == 0) { return; }
+                if (_rowSelected == 0) { return; }
 
-                if(!rowIDs.Contains(_rowSelected)) { _rowSelected = -1; }
+                if (!rowIDs.Contains(_rowSelected)) { _rowSelected = -1; }
 
-                if(_rowSelected != -1)
+                if (_rowSelected != -1)
                 {
                     //transfer SQLite row data
                     int _rowFound = rowIDs.BinarySearch(_rowSelected);
@@ -828,10 +832,10 @@ namespace SQLite_LFS_Prototype
             string _path;
 
             FileData _fileData = new FileData();
-            List<string>  _files = Directory.EnumerateFiles(_manual).ToList();
+            List<string> _files = Directory.EnumerateFiles(_manual).ToList();
 
             string _parseStr = Console.ReadLine();
-            if(!int.TryParse(_parseStr, out _IdChoice)) { _IdChoice = -1; }
+            if (!int.TryParse(_parseStr, out _IdChoice)) { _IdChoice = -1; }
 
             foreach (string file in _files)
             {
@@ -848,25 +852,27 @@ namespace SQLite_LFS_Prototype
 
         public void Sync()
         {
+            int _index = 0;
+
             DataSet dataSet = new DataSet();
 
             List<FileData> _dataFromDB = new List<FileData>();
             List<FileData> _dataFromFile = new List<FileData>();
 
-            List<bool> _dataCompare = new List<bool>();
-
             List<string> _dirFiles = new List<string>();
-            List<string> _tables = new List<string>
-            { 
-                "ManualTx",
-                "PendingTx",
-                "ProcessedTx"
+
+            Dictionary<string, string> _tables = new Dictionary<string, string>
+            {
+                { "ManualTx", _manual },
+                { "PendingTx", _pending },
+                { "ProcessedTx", _processed }
             };
 
-            foreach (string table in _tables)
+            foreach (KeyValuePair<string, string> table in _tables)
             {
-                dataSet = GrabData(table);
+                dataSet = GrabData(table.Key);
 
+                //populate data from SQLite
                 foreach (DataRow row in dataSet.Tables[0].Rows)
                 {
                     _dataFromDB.Add(new FileData
@@ -880,20 +886,36 @@ namespace SQLite_LFS_Prototype
                     });
                 }
 
-                _dirFiles = Directory.EnumerateFiles(_manual).ToList();
+                FilePrep();
+                _dirFiles = Directory.EnumerateFiles(table.Value).ToList();
 
+                //Deserialize data from Folder
                 foreach (string _file in _dirFiles)
                 {
                     _dataFromFile.Add(Deserialize(_file));
                 }
 
-
                 foreach (FileData item in _dataFromFile)
                 {
-                    _dataCompare.Add(_dataFromDB.Contains(item, new FileDataComparer()));
+                    if(!_dataFromDB.Contains(item, new FileDataComparer()))
+                    {
+                        File.Delete(_dirFiles[_index]);
+                        _dataFromFile.RemoveAt(_index);
+                    }
+
+                    _index++;
                 }
-    
-                Console.ReadKey();
+
+                foreach(FileData item in _dataFromDB)
+                {
+                    if(!_dataFromFile.Contains(item, new FileDataComparer()))
+                    {
+                        Serialize(item, table.Key);
+                    }
+                }
+
+                
+                Console.WriteLine(table.Key);
 
             }
         }
@@ -909,7 +931,7 @@ namespace SQLite_LFS_Prototype
             string _dateFormat = "{0}-{1}-{2} {3}:{4}:{5}.{6}";
 
             string _newDate = string.Format(_dateFormat, date.Year, date.Month, date.Day, date.Hour, date.Minute, date.Second, date.Millisecond);
-            
+
             return _newDate;
         }
 
@@ -948,13 +970,14 @@ namespace SQLite_LFS_Prototype
 
         public List<string> GetTables()
         {
-            string _path = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\");
+            string _path;
 
             List<string> _retValue = new List<string>();
             DataTable tableData = FileConnection.GetSchema("Tables");
 
             foreach (DataRow row in tableData.Rows)
             {
+                _path = Path.Combine(Directory.GetParent(Environment.CurrentDirectory).Parent.FullName, @"Data\");
                 _path += $@"{row[2].ToString()}\";
 
                 _retValue.Add(row[2].ToString());
@@ -964,10 +987,10 @@ namespace SQLite_LFS_Prototype
 
             return _retValue;
         }
-        
+
         public Dictionary<long, string> GetExtensionInfo()
         {
-            return null;
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -1009,7 +1032,7 @@ namespace SQLite_LFS_Prototype
 
             foreach (FileData item in _rowData)
             {
-                if(item.Id == RowID) { break; }
+                if (item.Id == RowID) { break; }
 
                 removeIndex++;
             }
@@ -1029,6 +1052,16 @@ namespace SQLite_LFS_Prototype
             }
         }
 
+        private void FilePrep()
+        {
+            if (!Directory.Exists(_manual)) { Directory.CreateDirectory(_manual); }
+
+            if (!Directory.Exists(_pending)) { Directory.CreateDirectory(_pending); }
+
+            if (!Directory.Exists(_processed)) { Directory.CreateDirectory(_processed); }
+
+            if (!Directory.Exists(_extensions)) { Directory.CreateDirectory(_extensions); }
+        }
         #endregion
 
         #region Enums
@@ -1055,28 +1088,40 @@ namespace SQLite_LFS_Prototype
         {
             if (Data1 == null && Data2 == null) { return true; }
             else if (Data1 == null || Data2 == null) { return false; }
-            else if (
-                Data1.Id == Data2.Id &&                                                         //check ID
-                Data1.Type == Data2.Type &&                                                     //check Type
-                Encoding.ASCII.GetString(Data1.Data) == Encoding.ASCII.GetString(Data2.Data) && //check Data
-                Data1.ExtensionId == Data2.ExtensionId &&                                       //check Extension ID
-                Data1.DateCreated.Year == Data2.DateCreated.Year &&                             //check Date Created Year
-                Data1.DateCreated.Month == Data2.DateCreated.Month &&                           //Check Date Created Month
-                Data1.DateCreated.Day == Data2.DateCreated.Day &&                               //Check Date Created Day
-                Data1.DateCreated.Hour == Data2.DateCreated.Hour &&                             //Check Date Created Hour
-                Data1.DateCreated.Minute == Data2.DateCreated.Minute &&                         //Check Date Created Minute
-                Data1.DateCreated.Second == Data2.DateCreated.Second &&                         //Check Date Created Second
-                Data1.DateCreated.Millisecond == Data2.DateCreated.Millisecond &&               //Check Date Created Millisecond
-                Data1.DateUpdated.Year == Data2.DateUpdated.Year &&                             //check Date Updated Year
-                Data1.DateUpdated.Month == Data2.DateUpdated.Month &&                           //Check Date Updated Month
-                Data1.DateUpdated.Day == Data2.DateUpdated.Day &&                               //Check Date Updated Day
-                Data1.DateUpdated.Hour == Data2.DateUpdated.Hour &&                             //Check Date Updated Hour
-                Data1.DateUpdated.Minute == Data2.DateUpdated.Minute &&                         //Check Date Updated Minute
-                Data1.DateUpdated.Second == Data2.DateUpdated.Second &&                         //Check Date Updated Second
-                Data1.DateUpdated.Millisecond == Data2.DateUpdated.Millisecond                  //Check Date Updated Millisecond
-            ) { return true; }
+            else if
+                (
+                    Data1.Id == Data2.Id &&
+                    Data1.Type == Data2.Type &&
+                    Data1.DateCreated.Year == Data2.DateCreated.Year &&
+                    Data1.DateCreated.Month == Data2.DateCreated.Month &&
+                    Data1.DateCreated.Day == Data2.DateCreated.Day &&
+                    Data1.DateCreated.Hour == Data2.DateCreated.Hour &&
+                    Data1.DateCreated.Minute == Data2.DateCreated.Minute &&
+                    Data1.DateCreated.Second == Data2.DateCreated.Second &&
+                    Data1.DateCreated.Millisecond == Data2.DateCreated.Millisecond &&
+                    Data1.DateUpdated.Year == Data2.DateUpdated.Year &&
+                    Data1.DateUpdated.Month == Data2.DateUpdated.Month &&
+                    Data1.DateUpdated.Day == Data2.DateUpdated.Day &&
+                    Data1.DateUpdated.Hour == Data2.DateUpdated.Hour &&
+                    Data1.DateUpdated.Minute == Data2.DateUpdated.Minute &&
+                    Data1.DateUpdated.Second == Data2.DateUpdated.Second &&
+                    Data1.DateUpdated.Millisecond == Data2.DateUpdated.Millisecond
+                )
+                {
+                    if (Data1.ExtensionId == 1)
+                    {
+                        if (Encoding.ASCII.GetString(Data1.Data) == Encoding.ASCII.GetString(Data2.Data)) { return true; }
+                        else { return false; }
+                    }
+                    else
+                    {
+                        if (Data1.Data.Length == Data2.Data.Length) { return true; }
+                        else { return false; }
+                    }
+                }    
             else { return false; }
         }
+
 
         public int GetHashCode(FileData Data)
         {

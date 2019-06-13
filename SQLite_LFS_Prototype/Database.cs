@@ -10,6 +10,7 @@ using System.Data.SQLite;
 using System.Xml.Serialization;
 using System.Collections.Generic;
 using SQLite_LFS_Prototype.Model;
+using SQLite_LFS_Prototype.Comparer;
 using System.Text;
 
 namespace SQLite_LFS_Prototype
@@ -17,7 +18,6 @@ namespace SQLite_LFS_Prototype
     public class Database
     {
         private SQLiteConnection FileConnection { get; set; }
-        private FormatType CommandAction { get; set; }
         private string constr { get; set; }
 
         private readonly string _sqlitePath;
@@ -44,13 +44,16 @@ namespace SQLite_LFS_Prototype
             }
 
             FileConnection = new SQLiteConnection(constr);
-            CommandAction = FormatType.None;
         }
 
         //
         //Functions
         //
 
+        /// <summary>
+        /// Creates a connection to the SQLite DB
+        /// </summary>
+        /// <returns></returns>
         public bool Connect()
         {
             if (File.Exists(_sqlitePath) && FileConnection.State != ConnectionState.Open)
@@ -66,6 +69,10 @@ namespace SQLite_LFS_Prototype
             }
         }
 
+        /// <summary>
+        /// Safely closes connection to SQLite DB
+        /// </summary>
+        /// <returns></returns>
         public bool Disconnect()
         {
             if (File.Exists(_sqlitePath) && FileConnection.State != ConnectionState.Closed)
@@ -141,7 +148,7 @@ namespace SQLite_LFS_Prototype
 
             #region SQLite Insert Command
 
-            string insertCommand = "INSERT INTO ExtensionInfo (Extension) VALUES ('txt'), ('exe'), ('pdf'), ('jpg'), ('cs'), ('c'), ('cpp');";
+            //string insertCommand = "INSERT INTO ExtensionInfo (Extension) VALUES ('txt'), ('exe'), ('pdf'), ('jpg'), ('cs'), ('c'), ('cpp');";
 
             #endregion
 
@@ -208,6 +215,50 @@ namespace SQLite_LFS_Prototype
         }
 
         /// <summary>
+        /// imports folder of XML files
+        /// </summary>
+        /// <param name="FileLocation"></param>
+        public void Import(string FileLocation)
+        {
+            List<string> _files = new List<string>();
+            List<ExtensionInfo> _ext = new List<ExtensionInfo>();
+            List<FileData> _fData = new List<FileData>();
+
+            string tmp;
+
+            int rowsAffected = 0;
+
+            _files = Directory.EnumerateFiles(FileLocation).ToList();
+
+            foreach (string file in _files)
+            {
+                tmp = file.Remove(0, FileLocation.Length);
+                tmp = file.Remove(0, 12);
+
+                if (tmp == "ManualTx_ID_")
+                {
+                    InsertRow("ManualTx", DeserializeFile(file));
+                }
+                if (tmp == "PendingTx_ID") 
+                {
+                    InsertRow("PendingTx", DeserializeFile(file));
+                }
+                if (tmp == "ProcessedTx_") 
+                {
+                    InsertRow("ProcessedTx", DeserializeFile(file));
+                }
+                if (tmp == "ExtensionInf")
+                {
+                    InsertRow("ExtensionInfo", DeserializeExtension(file));
+                }
+
+                rowsAffected++;
+            }
+
+            Console.WriteLine($"Import Successfull. {rowsAffected} row(s) affected.");
+        }
+
+        /// <summary>
         /// Displays all table data from SQLite db using stream reader
         /// </summary>
         /// <param name="table"></param>
@@ -271,43 +322,11 @@ namespace SQLite_LFS_Prototype
             Console.WriteLine("\n");
         }
 
-        #region Dapper Testing
-
-        /// <summary>
-        /// Insert using Dapper
-        /// </summary>
-        /// <param name="rowData"></param>
-        /// <param name="table"></param>
-        public void Insert(FileData rowData, string table)
-        {
-            string _command = $@"INSERT INTO {table} (Type, Data, ExtensionId, DateCreated, DateUpdated) VALUES (@Type, @Data, @ExtensionID, @DateCreated, @DateUpdated); SELECT last_insert_rowid();";
-
-            DatabaseProfile profile = new DatabaseProfile("sqlite", constr, "SQLite3");
-
-            rowData.Id = FileConnection.Query<int>(_command, rowData).First();
-        }
-
-        /// <summary>
-        /// Select Row Data using Dapper
-        /// </summary>
-        /// <param name="Id"></param>
-        /// <param name="table"></param>
-        /// <returns></returns>
-        public FileData SelectData(int Id, string table)
-        {
-            string _command = $@"SELECT Id, Name, Data, ExtensionId FROM {table} WHERE Id = @id";
-            FileData _retValue = FileConnection.Query<FileData>(_command, new { Id }).FirstOrDefault();
-
-            return _retValue;
-        }
-
-        #endregion
-
         /// <summary>
         /// Prints formated table given list of row data
         /// </summary>
         /// <param name="data"></param>
-        string PrintTable(List<FileData> data, string CommandAfter)
+        public string PrintTable(List<FileData> data, string CommandAfter)
         {
             int dataTabs = 8;
             int nameTabs = 1;
@@ -325,16 +344,10 @@ namespace SQLite_LFS_Prototype
                 if (row.ExtensionId == 1) //1 == txt
                 {
                     //gets the length of the longest entry in data
-                    if (row.Data.Length > dataTabs)
-                    {
-                        dataTabs = row.Data.Length;
-                    }
+                    if (row.Data.Length > dataTabs) { dataTabs = row.Data.Length; }
                 }
 
-                if (row.Type.Length > nameTabs)
-                {
-                    nameTabs = row.Type.Length;
-                }
+                if (row.Type.Length > nameTabs) { nameTabs = row.Type.Length; }
             }
 
             dataTabs = (dataTabs > 8) ? 8 : (dataTabs / 8) + 1;
@@ -351,55 +364,31 @@ namespace SQLite_LFS_Prototype
 
             Console.Write("ID\tName");
 
-            for (int n = 0; n < nameTabs; n++)
-            {
-                Console.Write("\t");
-            }
+            for (int n = 0; n < nameTabs; n++) { Console.Write("\t"); }
 
             Console.Write("Data");
 
-            for (int i = 0; i < dataTabs; i++)
-            {
-                Console.Write("\t");
-            }
+            for (int i = 0; i < dataTabs; i++) { Console.Write("\t"); }
 
             Console.WriteLine("Extension ID\tDate Created\t\t\tDate Updated");
 
             //Printing Table Data
             foreach (FileData value in data)
             {
-                if (value.ExtensionId == 1) // 1 == .txt
-                {
-                    readableData = Encoding.ASCII.GetString(value.Data);
-                }
-                else
-                {
-                    readableData = "This data is not in a readable format";
-                }
+                if (value.ExtensionId == 1) { readableData = Encoding.ASCII.GetString(value.Data); }
+                else { readableData = "This data is not in a readable format"; }
 
                 valuesDataTab = (value.ExtensionId == 1) ? (value.Data.Length > 60) ? 1 : dataTabs - (value.Data.Length / 8) : dataTabs - (readableData.Length / 8);
                 valuesNameTab = nameTabs - (value.Type.Length / 8);
 
                 Console.Write($"{value.Id.ToString()}\t{value.Type}");
 
-                for (int n = 0; n < valuesNameTab; n++)
-                {
-                    Console.Write("\t");
-                }
+                for (int n = 0; n < valuesNameTab; n++) { Console.Write("\t"); }
 
-                if (readableData.Length > 60)
-                {
-                    Console.Write($"{readableData.Remove(60)}...");
-                }
-                else
-                {
-                    Console.Write(readableData);
-                }
+                if (readableData.Length > 60) { Console.Write($"{readableData.Remove(60)}..."); }
+                else { Console.Write(readableData); }
 
-                for (int k = 0; k < valuesDataTab; k++)
-                {
-                    Console.Write("\t");
-                }
+                for (int k = 0; k < valuesDataTab; k++) { Console.Write("\t"); }
 
                 Console.WriteLine($"{value.ExtensionId}\t\t{value.DateCreated}\t\t{value.DateUpdated}");
             }
@@ -411,6 +400,32 @@ namespace SQLite_LFS_Prototype
 
             Console.WindowHeight = _retHeight;
             Console.WindowWidth = _retWidth;
+
+            return _retString;
+        }
+
+        /// <summary>
+        /// Prints formated table of ExtensionInfo
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="CommandAfter"></param>
+        /// <returns></returns>
+        public string PrintTable(List<ExtensionInfo> data, string CommandAfter)
+        {
+            string _retString;
+
+            //Printing Titles
+            Console.Clear();
+
+            Console.WriteLine("ID\tExtension");
+
+            //Printing Table Data
+            foreach (ExtensionInfo value in data) { Console.WriteLine($"{value.Id.ToString()}\t{value.Extension}"); }
+
+            Console.Write($"\n\n{CommandAfter}");
+            _retString = Console.ReadLine();
+
+            Console.Clear();
 
             return _retString;
         }
@@ -441,11 +456,11 @@ namespace SQLite_LFS_Prototype
         }
 
         /// <summary>
-        /// Converts data from XML file into a RowData Object given the file path
+        /// Converts data from XML file into a FileData Object given the file path
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public FileData Deserialize(string path)
+        public FileData DeserializeFile(string path)
         {
             FileData _returnValue;
 
@@ -454,6 +469,25 @@ namespace SQLite_LFS_Prototype
             using (Stream _readTx = new FileStream(path, FileMode.Open))
             {
                 _returnValue = (FileData)reader.Deserialize(_readTx);
+            }
+
+            return _returnValue;
+        }
+
+        /// <summary>
+        /// Converts data from XML file into a ExtensionInfo Object given the file path
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public ExtensionInfo DeserializeExtension(string path)
+        {
+            ExtensionInfo _returnValue;
+
+            XmlSerializer reader = new XmlSerializer(typeof(ExtensionInfo));
+
+            using (Stream _readTx = new FileStream(path, FileMode.Open))
+            {
+                _returnValue = (ExtensionInfo)reader.Deserialize(_readTx);
             }
 
             return _returnValue;
@@ -482,16 +516,52 @@ namespace SQLite_LFS_Prototype
 
             try
             {
-                if (File.Exists(_path))
+                if (File.Exists(_path)) { File.Delete(_path); }
+
+                using (FileStream _newTransaction = File.Create(_path))
                 {
-                    File.Delete(_path);
+                    writer.Serialize(_newTransaction, data);
+
+                    return true;
                 }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Converts objects into an XML file for later storage
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="table"></param>
+        public bool Serialize(ExtensionInfo data, string table)
+        {
+            string _path = "";
+
+            XmlSerializer writer = new XmlSerializer(typeof(ExtensionInfo));
+
+            if (table == "ManualTx") { _path = _manual + $"{table}_ID_{data.Id}_Tx.tranx"; }
+
+            if (table == "PendingTx") { _path = _pending + $"{table}_ID_{data.Id}_Tx.tranx"; }
+
+            if (table == "ProcessedTx") { _path = _processed + $"{table}_ID_{data.Id}_Tx.tranx"; }
+
+            if (table == "ExtensionInfo") { _path = _extensions + $"{table}_ID_{data.Id}_Tx.tranx"; }
+
+            if (_path == "") { return false; }
+
+            try
+            {
+                if (File.Exists(_path)) { File.Delete(_path); }
 
                 FileStream _newTransaction = _newTransaction = File.Create(_path);
 
                 writer.Serialize(_newTransaction, data);
 
                 _newTransaction.Close();
+
                 return true;
             }
             catch (Exception)
@@ -536,86 +606,106 @@ namespace SQLite_LFS_Prototype
             #region variables 
 
             int _rowChoice;
-            int _rowsAffected;
 
             bool _rowContinue = true;
 
-            DataSet data = GrabData(table);
-
-            List<FileData> _rowData = new List<FileData>();
-            List<ExtensionInfo> _extInfo = new List<ExtensionInfo>();
-            List<Int64> _IDs = new List<Int64>();
+            List<int> _IDs = new List<int>();
 
             #endregion
 
             //sets the data to the correst List
             if (table == "ExtensionInfo")
             {
-                foreach (DataRow row in data.Tables[0].Rows)
+                List<ExtensionInfo> _extInfo = new List<ExtensionInfo>();
+
+                _extInfo = GetExtensionInfo();
+
+                do
                 {
-                    _extInfo.Add(new ExtensionInfo()
+                    string _parseStr = PrintTable(_extInfo, "What Row would you like to remove? Press 0 to exit: ");
+                    if (!int.TryParse(_parseStr, out _rowChoice)) { _rowChoice = -1; }
+
+                    if (_rowChoice == 0) { _rowContinue = false; break; }
+
+                    if (_rowChoice > _IDs.Max() || _rowChoice < 0)
                     {
-                        Id = (Int64)row[0],
-                        Extension = (string)row[1]
-                    });
-
-                    _IDs.Add((long)row[0]);
-                }
-            }
-
-            foreach (DataRow row in data.Tables[0].Rows)
-            {
-                _rowData.Add(new FileData()
-                {
-                    Id = (Int64)row[0],
-                    Type = (string)row[1],
-                    Data = (Byte[])row[2],
-                    DateCreated = Convert.ToDateTime(row[3]),
-                    DateUpdated = Convert.ToDateTime(row[4]),
-                    ExtensionId = (Int64)row[5]
-                });
-
-                _IDs.Add((Int64)row[0]);
-            }
-
-            do
-            {
-                string _parseStr = PrintTable(_rowData, "What Row would you like to remove? Press 0 to exit: ");
-                if (!int.TryParse(_parseStr, out _rowChoice)) { _rowChoice = -1; }
-
-                if (_rowChoice == 0) { _rowContinue = false; break; }
-
-                if (_rowChoice > _IDs.Max() || _rowChoice < 0)
-                {
-                    Console.WriteLine("Please enter a value in range.");
-                    Console.WriteLine("Press Any Key To Continue...");
-                    Console.ReadKey();
-                    break;
-                }
-
-                try
-                {
-                    if (!_IDs.Contains(_rowChoice))
-                    {
-                        _rowContinue = true;
-                        Console.Clear();
-                        Console.WriteLine("Please Enter a Valid Option");
+                        Console.WriteLine("Please enter a value in range.");
                         Console.WriteLine("Press Any Key To Continue...");
                         Console.ReadKey();
                         break;
                     }
 
-                    _rowData = DeleteRow(table, _rowChoice, _rowData);
-                }
-                catch (Exception ex)
-                {
-                    Console.Clear();
-                    Console.WriteLine(ex.Message);
-                    Console.WriteLine("Press Any Key To Continue...");
-                    Console.ReadKey();
-                }
+                    try
+                    {
+                        if (!_IDs.Contains(_rowChoice))
+                        {
+                            _rowContinue = true;
+                            Console.Clear();
+                            Console.WriteLine("Please Enter a Valid Option");
+                            Console.WriteLine("Press Any Key To Continue...");
+                            Console.ReadKey();
+                            break;
+                        }
 
-            } while (_rowContinue);
+                        _extInfo = DeleteRow(table, _rowChoice, _extInfo);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Clear();
+                        Console.WriteLine(ex.Message);
+                        Console.WriteLine("Press Any Key To Continue...");
+                        Console.ReadKey();
+                    }
+
+                } while (_rowContinue);
+            }
+            else
+            {
+                List<FileData> _rowData = new List<FileData>();
+
+                _rowData = GetFileData(table);
+
+                _IDs = GetIDs(_rowData);
+
+                do
+                {
+                    string _parseStr = PrintTable(_rowData, "What Row would you like to remove? Press 0 to exit: ");
+                    if (!int.TryParse(_parseStr, out _rowChoice)) { _rowChoice = -1; }
+
+                    if (_rowChoice == 0) { _rowContinue = false; break; }
+
+                    if (_rowChoice > _IDs.Max() || _rowChoice < 0)
+                    {
+                        Console.WriteLine("Please enter a value in range.");
+                        Console.WriteLine("Press Any Key To Continue...");
+                        Console.ReadKey();
+                        break;
+                    }
+
+                    try
+                    {
+                        if (!_IDs.Contains(_rowChoice))
+                        {
+                            _rowContinue = true;
+                            Console.Clear();
+                            Console.WriteLine("Please Enter a Valid Option");
+                            Console.WriteLine("Press Any Key To Continue...");
+                            Console.ReadKey();
+                            break;
+                        }
+
+                        _rowData = DeleteRow(table, _rowChoice, _rowData);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Clear();
+                        Console.WriteLine(ex.Message);
+                        Console.WriteLine("Press Any Key To Continue...");
+                        Console.ReadKey();
+                    }
+
+                } while (_rowContinue);
+            }
         }
 
         /// <summary>
@@ -628,91 +718,34 @@ namespace SQLite_LFS_Prototype
             #region variables 
 
             int _rowChoice;
-            int _totalRows;
 
-            bool _rowContinue;
             bool found = false;
+            bool _rowContinue;
 
             string readableData;
 
-            DataSet data = GrabData(table);
-
-            List<FileData> _rowData = new List<FileData>();
-            List<ExtensionInfo> _extInfo = new List<ExtensionInfo>();
+            List<int> IDs = new List<int>();
 
             #endregion
 
             if (table == "ExtensionInfo")
             {
-
-                foreach (DataRow row in data.Tables[0].Rows)
+                List<ExtensionInfo> _extInfo = new List<ExtensionInfo>();
+                
+                _extInfo = GetExtensionInfo();
+                IDs = GetIDs(_extInfo);
+                do
                 {
-                    _extInfo.Add(new ExtensionInfo()
+                    _rowContinue = false;
+
+                    string _parseStr = PrintTable(_extInfo, "To view the data of a row select the Id. Press 0 to exit: ");
+                    if (!int.TryParse(_parseStr, out _rowChoice)) { _rowChoice = -1; }
+
+                    if (_rowChoice == 0) { return; }
+
+                    try
                     {
-                        Id = (Int64)row[0],
-                        Extension = (string)row[1]
-                    });
-                }
-            }
-            else
-            {
-                foreach (DataRow row in data.Tables[0].Rows)
-                {
-                    _rowData.Add(new FileData()
-                    {
-                        Id = (Int64)row[0],
-                        Type = (string)row[1],
-                        Data = (Byte[])row[2],
-                        DateCreated = Convert.ToDateTime(row[3]),
-                        DateUpdated = Convert.ToDateTime(row[4]),
-                        ExtensionId = (Int64)row[5]
-                    });
-                }
-            }
-
-            do
-            {
-                _rowContinue = false;
-                _totalRows = _rowData.Count;
-
-                string _parseStr = PrintTable(_rowData, "To view the data of a row select the Id. Press 0 to exit: ");
-                if (!int.TryParse(_parseStr, out _rowChoice)) { _rowChoice = -1; }
-
-                int consoleWidth = Console.WindowWidth;
-                int consoleHeight = Console.WindowHeight;
-
-                if (_rowChoice == 0)
-                {
-                    return;
-                }
-
-                try
-                {
-                    foreach (FileData item in _rowData)
-                    {
-                        if (item.Id == _rowChoice)
-                        {
-                            readableData = (item.ExtensionId == 1) ? Encoding.ASCII.GetString(item.Data) : "This data is not in a readable format";
-
-                            found = true;
-                            Console.Clear();
-                            Console.WriteLine($"\n\n\n\n\nSelected {item.Type}\n\n");
-                            Console.WriteLine($"ID: {item.Id}\n");
-                            Console.WriteLine($"Type: {item.Type}\n");
-                            Console.WriteLine($"Data: \n{readableData}\n");
-                            Console.WriteLine($"ExtensionId: {item.ExtensionId}\n");
-                            Console.WriteLine($"Date Created: {item.DateCreated}\n");
-                            Console.WriteLine($"Date Updated: {item.DateUpdated}\n");
-                            Console.WriteLine("\nPress Any Key To Continue...");
-                            Console.ReadKey();
-                            return;
-                        }
-                        Serialize(item, table);
-                    }
-
-                    if (!found)
-                    {
-                        if (_rowChoice > _totalRows)
+                        if (!IDs.Contains(_rowChoice))
                         {
                             _rowContinue = true;
 
@@ -720,51 +753,128 @@ namespace SQLite_LFS_Prototype
                             Console.WriteLine("Please Enter a Valid Option");
                             Console.WriteLine("Press Any Key To Continue...");
                             Console.ReadKey();
+
+                            break;
                         }
+
+                        foreach (ExtensionInfo item in _extInfo)
+                        {
+                            if (item.Id == _rowChoice)
+                            {
+                                found = true;
+
+                                Console.Clear();
+                                Console.WriteLine($"\n\n\n\n\nSelected {item.Extension}\n\n");
+                                Console.WriteLine($"ID: {item.Id}\n");
+                                Console.WriteLine($"ExtensionId: {item.Extension}\n");
+                                Console.WriteLine("\nPress Any Key To Continue...");
+                                Console.ReadKey();
+
+                                return;
+                            }
+
+                            Serialize(item, table);
+                        }
+
+                    }
+                    catch (Exception ex)
+                    {
+                        _rowContinue = true;
+                        Console.Clear();
+                        Console.WriteLine(ex.Message);
+                        Console.WriteLine("Press Any Key To Continue...");
+                        Console.ReadKey();
                     }
 
-                }
-                catch (Exception ex)
-                {
-                    _rowContinue = true;
-                    Console.Clear();
-                    Console.WriteLine(ex.Message);
-                    Console.WriteLine("Press Any Key To Continue...");
-                    Console.ReadKey();
-                }
+                } while (_rowContinue);
 
-            } while (_rowContinue);
+            }
+            else
+            {
+                List<FileData> _rowData = new List<FileData>();
+
+                _rowData = GetFileData(table);
+                IDs = GetIDs(_rowData);
+
+                do
+                {
+                    _rowContinue = false;
+
+                    string _parseStr = PrintTable(_rowData, "To view the data of a row select the Id. Press 0 to exit: ");
+                    if (!int.TryParse(_parseStr, out _rowChoice)) { _rowChoice = -1; }
+
+                    int consoleWidth = Console.WindowWidth;
+                    int consoleHeight = Console.WindowHeight;
+
+                    if (_rowChoice == 0) { return; }
+
+                    try
+                    {
+                        if(!IDs.Contains(_rowChoice))
+                        {
+                            _rowContinue = true;
+
+                            Console.Clear();
+                            Console.WriteLine("Please Enter a Valid Option");
+                            Console.WriteLine("Press Any Key To Continue...");
+                            Console.ReadKey();
+
+                            break;
+                        }
+
+                        foreach (FileData item in _rowData)
+                        {
+                            if (item.Id == _rowChoice)
+                            {
+                                readableData = (item.ExtensionId == 1) ? Encoding.ASCII.GetString(item.Data) : "This data is not in a readable format";
+
+                                found = true;
+                                Console.Clear();
+                                Console.WriteLine($"\n\n\n\n\nSelected {item.Type}\n\n");
+                                Console.WriteLine($"ID: {item.Id}\n");
+                                Console.WriteLine($"Type: {item.Type}\n");
+                                Console.WriteLine($"Data: \n{readableData}\n");
+                                Console.WriteLine($"ExtensionId: {item.ExtensionId}\n");
+                                Console.WriteLine($"Date Created: {item.DateCreated}\n");
+                                Console.WriteLine($"Date Updated: {item.DateUpdated}\n");
+                                Console.WriteLine("\nPress Any Key To Continue...");
+                                Console.ReadKey();
+                                return;
+                            }
+
+                            Serialize(item, table);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _rowContinue = true;
+                        Console.Clear();
+                        Console.WriteLine(ex.Message);
+                        Console.WriteLine("Press Any Key To Continue...");
+                        Console.ReadKey();
+                    }
+
+                } while (_rowContinue);
+            }
         }
 
         /// <summary>
         /// Manually process rows and move them over to Processed folder
         /// </summary>
         /// <param name="PrimaryTable"></param>
-        public void ManuallyProcess_Testing(string PrimaryTable)
+        public void ManuallyProcess()
         {
+            string _table = "ManualTx";
             DataSet data = new DataSet();
+
             FileData _fileData = new FileData();
+
             List<FileData> rows = new List<FileData>();
+
             List<int> rowIDs = new List<int>();
 
-            data = GrabData(PrimaryTable);
-
-            if (PrimaryTable == "ExtensionInfo") { return; }
-
-            foreach (DataRow row in data.Tables[0].Rows)
-            {
-                rows.Add(new FileData
-                {
-                    Id = (long)row[0],
-                    Type = (string)row[1],
-                    Data = (byte[])row[2],
-                    DateCreated = Convert.ToDateTime(row[3]),
-                    DateUpdated = Convert.ToDateTime(row[4]),
-                    ExtensionId = (long)row[5]
-                });
-
-                rowIDs.Add(Convert.ToInt32(row[0]));
-            }
+            rows = GetFileData(_table);
+            rowIDs = GetIDs(rows);
 
             do
             {
@@ -781,14 +891,12 @@ namespace SQLite_LFS_Prototype
                     int _rowFound = rowIDs.BinarySearch(_rowSelected);
                     _fileData = rows[_rowFound];
                     InsertRow("ProcessedTx", _fileData);
-                    rows = DeleteRow(PrimaryTable, _rowSelected, rows);
+                    rows = DeleteRow(_table, _rowSelected, rows);
                     rowIDs.RemoveAt(_rowFound);
 
                     //transfer file data 
-                    TransferData(PrimaryTable, _rowSelected);
+                    TransferData(_table, _rowSelected);
                 }
-
-
             } while (true);
         }
 
@@ -825,13 +933,88 @@ namespace SQLite_LFS_Prototype
         /// </summary>
         /// <param name="table"></param>
         /// <returns></returns>
-        public FileData GetFileData(string table)
+        public FileData DeserializeFileData(string table)
         {
             int _IdChoice;
 
+            string _dirPath = "";
             string _path;
 
             FileData _fileData = new FileData();
+
+            #region _path Declaration
+
+            if (table == "ManualTx") { _dirPath = _manual; }
+
+            if (table == "PendingTx") { _dirPath = _pending; }
+
+            if (table == "ProcessedTx") { _dirPath = _processed; }
+
+            if (table == "Extensioninfo") { _dirPath = _extensions; }
+
+            if (_dirPath == "") { return null; }
+
+            #endregion
+
+            List<string> _files = Directory.EnumerateFiles(_dirPath).ToList();
+
+            PrintFileName();
+            string _parseStr = Console.ReadLine();
+            if (!int.TryParse(_parseStr, out _IdChoice)) { _IdChoice = -1; }
+
+            foreach (string file in _files)
+            {
+                _path = _dirPath + $"{table}_ID_{_IdChoice}_Tx.tranx";
+
+                if (file == _path)
+                {
+                    _fileData = DeserializeFile(file);
+                }
+            }
+
+            return _fileData;
+
+            //
+            //Sub-Method
+            //
+
+            void PrintFileName()
+            {
+                int index = 1;
+
+                Console.WriteLine("ID\tFileName");
+
+                foreach (string file in _files)
+                {
+                    Console.WriteLine($"{index}\t{file.Remove(0, _dirPath.Length)}");
+                    index++;
+                }
+
+                Console.Write("What file would you like to Deserialize: ");
+            }
+        }
+
+        public ExtensionInfo SelectDeserialization (string table)
+        {
+            int _IdChoice;
+
+            string _path = "";
+
+            #region _path Declaration
+
+            if (table == "ManualTx") { _path = _manual; }
+
+            if (table == "PendingTx") { _path = _pending; }
+
+            if (table == "ProcessedTx") { _path = _processed; }
+
+            if (table == "Extensioninfo") { _path = _extensions; }
+
+            if (_path == "") { return null; }
+
+            #endregion
+
+            ExtensionInfo _fileData = new ExtensionInfo();
             List<string> _files = Directory.EnumerateFiles(_manual).ToList();
 
             string _parseStr = Console.ReadLine();
@@ -843,7 +1026,7 @@ namespace SQLite_LFS_Prototype
 
                 if (file == _path)
                 {
-                    _fileData = Deserialize(file);
+                    _fileData = DeserializeExtension(file);
                 }
             }
 
@@ -852,12 +1035,15 @@ namespace SQLite_LFS_Prototype
 
         public void Sync()
         {
-            int _index = 0;
+            int _index;
 
             DataSet dataSet = new DataSet();
 
             List<FileData> _dataFromDB = new List<FileData>();
+            List<ExtensionInfo> _extDataFromDB = new List<ExtensionInfo>();
+
             List<FileData> _dataFromFile = new List<FileData>();
+            List<ExtensionInfo> _extDataFromFile = new List<ExtensionInfo>();
 
             List<string> _dirFiles = new List<string>();
 
@@ -865,55 +1051,81 @@ namespace SQLite_LFS_Prototype
             {
                 { "ManualTx", _manual },
                 { "PendingTx", _pending },
-                { "ProcessedTx", _processed }
+                { "ProcessedTx", _processed },
+                { "ExtensionInfo", _extensions }
             };
 
             foreach (KeyValuePair<string, string> table in _tables)
             {
-                dataSet = GrabData(table.Key);
+                _index = 0;
+                _dataFromDB.Clear();
+                _dataFromFile.Clear();
 
-                //populate data from SQLite
-                foreach (DataRow row in dataSet.Tables[0].Rows)
+                if (table.Key != "ExtensionInfo")
                 {
-                    _dataFromDB.Add(new FileData
+                    //populate data from SQLite
+                    _dataFromDB = GetFileData(table.Key);
+
+                    FilePrep();
+                    _dirFiles = Directory.EnumerateFiles(table.Value).ToList();
+
+                    //Deserialize data from Folder
+                    foreach (string _file in _dirFiles)
                     {
-                        Id = (long)row[0],
-                        Type = (string)row[1],
-                        Data = (byte[])row[2],
-                        DateCreated = Convert.ToDateTime(row[3]),
-                        DateUpdated = Convert.ToDateTime(row[4]),
-                        ExtensionId = (long)row[5]
-                    });
-                }
-
-                FilePrep();
-                _dirFiles = Directory.EnumerateFiles(table.Value).ToList();
-
-                //Deserialize data from Folder
-                foreach (string _file in _dirFiles)
-                {
-                    _dataFromFile.Add(Deserialize(_file));
-                }
-
-                foreach (FileData item in _dataFromFile)
-                {
-                    if(!_dataFromDB.Contains(item, new FileDataComparer()))
-                    {
-                        File.Delete(_dirFiles[_index]);
-                        _dataFromFile.RemoveAt(_index);
+                        _dataFromFile.Add(DeserializeFile(_file));
                     }
 
-                    _index++;
-                }
-
-                foreach(FileData item in _dataFromDB)
-                {
-                    if(!_dataFromFile.Contains(item, new FileDataComparer()))
+                    foreach (FileData item in _dataFromFile)
                     {
-                        Serialize(item, table.Key);
+                        if (!_dataFromDB.Contains(item, new FileDataComparer()))
+                        {
+                            File.Delete(_dirFiles[_index]);
+                            _dataFromFile.RemoveAt(_index);
+                        }
+
+                        _index++;
+                    }
+
+                    foreach (FileData item in _dataFromDB)
+                    {
+                        if (!_dataFromFile.Contains(item, new FileDataComparer()))
+                        {
+                            Serialize(item, table.Key);
+                        }
                     }
                 }
+                else
+                {
+                    _extDataFromDB = GetExtensionInfo();
 
+                    FilePrep();
+                    _dirFiles = Directory.EnumerateFiles(table.Value).ToList();
+
+                    //Deserialize data from Folder
+                    foreach (string _file in _dirFiles)
+                    {
+                        _extDataFromFile.Add(DeserializeExtension(_file));
+                    }
+
+                    foreach (ExtensionInfo item in _extDataFromFile)
+                    {
+                        if (!_extDataFromDB.Contains(item, new ExtDataComparer()))
+                        {
+                            File.Delete(_dirFiles[_index]);
+                            _extDataFromFile.RemoveAt(_index);
+                        }
+
+                        _index++;
+                    }
+
+                    foreach (ExtensionInfo item in _extDataFromDB)
+                    {
+                        if (!_extDataFromFile.Contains(item, new ExtDataComparer()))
+                        {
+                            Serialize(item, table.Key);
+                        }
+                    }
+                }
                 
                 Console.WriteLine(table.Key);
 
@@ -933,32 +1145,6 @@ namespace SQLite_LFS_Prototype
             string _newDate = string.Format(_dateFormat, date.Year, date.Month, date.Day, date.Hour, date.Minute, date.Second, date.Millisecond);
 
             return _newDate;
-        }
-
-        private string FormatList(List<string> fields, FormatType CommandType)
-        {
-            List<string> temp = new List<string>();
-            temp = fields.ToList();
-            string formatedCommand = "";
-
-            switch (CommandType)
-            {
-                case FormatType.All:
-                    formatedCommand += temp.First();
-                    temp.RemoveAt(0);
-                    foreach (string entries in temp) { formatedCommand += ", " + entries; }
-                    return formatedCommand;
-                case FormatType.InsertFormat:
-                    formatedCommand += temp.First().Split(' ').First();
-                    temp.RemoveAt(0);
-                    foreach (string item in temp) { formatedCommand += ", " + item.Split(' ').First(); }
-                    return formatedCommand;
-                case FormatType.None:
-                    return formatedCommand;
-                default:
-                    Console.WriteLine("Could not format list");
-                    return "Command Failed";
-            }
         }
 
         private List<string> GetFeilds(List<string> columns)
@@ -988,9 +1174,73 @@ namespace SQLite_LFS_Prototype
             return _retValue;
         }
 
-        public Dictionary<long, string> GetExtensionInfo()
+        public List<FileData> GetFileData (string Table)
         {
-            throw new NotImplementedException();
+            DataSet rawdata = new DataSet();
+
+            List<FileData> _filedata = new List<FileData>();
+
+            rawdata = GrabData(Table);
+
+
+            foreach (DataRow row in rawdata.Tables[0].Rows)
+            {
+                _filedata.Add(new FileData
+                {
+                    Id = (long)row[0],
+                    Type = (string)row[1],
+                    Data = (byte[])row[2],
+                    DateCreated = Convert.ToDateTime(row[3]),
+                    DateUpdated = Convert.ToDateTime(row[4]),
+                    ExtensionId = (long)row[5]
+                });
+            }
+
+            return _filedata;
+        }
+
+        public List<ExtensionInfo> GetExtensionInfo()
+        {
+            DataSet _rawdata = new DataSet();
+
+            List<ExtensionInfo> extensionData = new List<ExtensionInfo>();
+
+            _rawdata = GrabData("ExtensionInfo");
+
+            foreach(DataRow row in _rawdata.Tables[0].Rows)
+            {
+                extensionData.Add(new ExtensionInfo
+                {
+                    Id = (long)row[0],
+                    Extension = (string)row[1]
+                });
+            }
+
+            return extensionData;
+        }
+
+        public List<int> GetIDs(List<FileData> Rows)
+        {
+            List<int> IDs = new List<int>();
+
+            foreach (FileData item in Rows)
+            {
+                IDs.Add(Convert.ToInt32(item.Id));
+            }
+
+            return IDs;
+        }
+
+        public List<int> GetIDs(List<ExtensionInfo> Rows)
+        {
+            List<int> IDs = new List<int>();
+
+            foreach (ExtensionInfo item in Rows)
+            {
+                IDs.Add(Convert.ToInt32(item.Id));
+            }
+
+            return IDs;
         }
 
         /// <summary>
@@ -1013,6 +1263,27 @@ namespace SQLite_LFS_Prototype
                 new SQLiteParameter(@"DateUpdated", data.DateUpdated)
             };
 
+
+            using (SQLiteCommand insertCommand = new SQLiteCommand(_command, FileConnection))
+            {
+                insertCommand.Parameters.AddRange(parameters);
+
+                rowsAffected = insertCommand.ExecuteNonQuery();
+
+                Console.WriteLine($"\n\n\t\t\t\tCommand Executed Successfully. {rowsAffected} row(s) affected.");
+                Console.ReadKey();
+            }
+        }
+
+        private void InsertRow(string Table, ExtensionInfo data)
+        {
+            string _command = $"INSERT INTO {Table} (Extension) VALUES (@ExtensionId);";
+            int rowsAffected;
+
+            SQLiteParameter[] parameters =
+            {
+                new SQLiteParameter(@"Extension", data.Extension),
+            };
 
             using (SQLiteCommand insertCommand = new SQLiteCommand(_command, FileConnection))
             {
@@ -1052,6 +1323,33 @@ namespace SQLite_LFS_Prototype
             }
         }
 
+        private List<ExtensionInfo> DeleteRow(string Table, int RowID, List<ExtensionInfo> _rowData)
+        {
+            int _rowsAffected;
+            int removeIndex = 0;
+
+            foreach (ExtensionInfo item in _rowData)
+            {
+                if (item.Id == RowID) { break; }
+
+                removeIndex++;
+            }
+
+            string _deleteCmd = $"DELETE FROM {Table} WHERE Id = ";
+
+            _deleteCmd += $"{RowID};";
+            using (SQLiteCommand _deleteRow = new SQLiteCommand(_deleteCmd, FileConnection))
+            {
+                _rowsAffected = _deleteRow.ExecuteNonQuery();
+                _rowData.RemoveAt(removeIndex);
+                Console.WriteLine($"Executing Command: {_rowsAffected} row(s) effected.");
+                Console.WriteLine("Press Any Key To Continue...");
+                Console.ReadKey();
+
+                return _rowData;
+            }
+        }
+
         private void FilePrep()
         {
             if (!Directory.Exists(_manual)) { Directory.CreateDirectory(_manual); }
@@ -1063,70 +1361,5 @@ namespace SQLite_LFS_Prototype
             if (!Directory.Exists(_extensions)) { Directory.CreateDirectory(_extensions); }
         }
         #endregion
-
-        #region Enums
-
-        //
-        //enums
-        //
-
-        public enum FormatType
-        {
-            All,
-            InsertFormat,
-            None
-        }
-
-        #endregion
-    }
-
-
-
-    class FileDataComparer : IEqualityComparer<FileData>
-    {
-        public bool Equals(FileData Data1, FileData Data2)
-        {
-            if (Data1 == null && Data2 == null) { return true; }
-            else if (Data1 == null || Data2 == null) { return false; }
-            else if
-                (
-                    Data1.Id == Data2.Id &&
-                    Data1.Type == Data2.Type &&
-                    Data1.DateCreated.Year == Data2.DateCreated.Year &&
-                    Data1.DateCreated.Month == Data2.DateCreated.Month &&
-                    Data1.DateCreated.Day == Data2.DateCreated.Day &&
-                    Data1.DateCreated.Hour == Data2.DateCreated.Hour &&
-                    Data1.DateCreated.Minute == Data2.DateCreated.Minute &&
-                    Data1.DateCreated.Second == Data2.DateCreated.Second &&
-                    Data1.DateCreated.Millisecond == Data2.DateCreated.Millisecond &&
-                    Data1.DateUpdated.Year == Data2.DateUpdated.Year &&
-                    Data1.DateUpdated.Month == Data2.DateUpdated.Month &&
-                    Data1.DateUpdated.Day == Data2.DateUpdated.Day &&
-                    Data1.DateUpdated.Hour == Data2.DateUpdated.Hour &&
-                    Data1.DateUpdated.Minute == Data2.DateUpdated.Minute &&
-                    Data1.DateUpdated.Second == Data2.DateUpdated.Second &&
-                    Data1.DateUpdated.Millisecond == Data2.DateUpdated.Millisecond
-                )
-                {
-                    if (Data1.ExtensionId == 1)
-                    {
-                        if (Encoding.ASCII.GetString(Data1.Data) == Encoding.ASCII.GetString(Data2.Data)) { return true; }
-                        else { return false; }
-                    }
-                    else
-                    {
-                        if (Data1.Data.Length == Data2.Data.Length) { return true; }
-                        else { return false; }
-                    }
-                }    
-            else { return false; }
-        }
-
-
-        public int GetHashCode(FileData Data)
-        {
-            int _hashCode = Data.DateUpdated.Second ^ Data.DateCreated.Second ^ Data.DateCreated.Minute;
-            return _hashCode.GetHashCode();
-        }
     }
 }

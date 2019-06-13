@@ -113,6 +113,7 @@ namespace SQLite_LFS_Prototype
                     {
                         int _insertMenuChoice;
                         bool _tableDataContinue;
+                        bool _importTypeContinue;
 
                         do
                         {
@@ -124,7 +125,7 @@ namespace SQLite_LFS_Prototype
                             Console.WriteLine("\n\n\n\n\n" +
                                         "\t\t\t\t_______________Insert Data Menu_______________");
                             PrintMenu();
-                            Console.Write("What Table would you like to Add a row to: ");
+                            Console.Write("What Table would you like to Add to: ");
 
                             #endregion
 
@@ -132,17 +133,46 @@ namespace SQLite_LFS_Prototype
 
                             try
                             {
-                                if (_insertMenuChoice == 0)
+                                if (_insertMenuChoice == 0) { return; }
+
+                                do
                                 {
-                                    return;
-                                }
-                                sqlDatabase.InsertInto(tables[_insertMenuChoice - 1]);
+                                    _importTypeContinue = false;
+                                    Console.Clear();
+
+                                    Console.Write("\n\n\n\n\n" +
+                                        "\t\t\t\t_________________Import Data__________________\n" +
+                                        "\t\t\t\t|--------------------------------------------|\n" +
+                                        "\t\t\t\t|--------------1 - Single Row----------------|\n" +
+                                        "\t\t\t\t|--------------2 - XML Folder----------------|\n" +
+                                        "\t\t\t\t|--------------------------------------------|\n" +
+                                        "\t\t\t\t|--------------0 - Exit----------------------|\n" +
+                                        "\t\t\t\t|____________________________________________|\n" +
+                                        "\t\t\t\tInsert Row or XML Files: ");
+
+                                    string _parseStr = Console.ReadLine();
+                                    if (!int.TryParse(_parseStr, out int _importChoice)) { _importChoice = -1; }
+
+                                    switch (_importChoice)
+                                    {
+                                        case 1:
+                                            sqlDatabase.InsertInto(tables[_insertMenuChoice - 1]);
+                                            break;
+                                        case 2:
+                                            string importLoc = Console.ReadLine();
+                                            sqlDatabase.Import(importLoc);
+                                            break;
+                                        default:
+                                            _importTypeContinue = true;
+                                            break;
+                                    }
+                                } while (_importTypeContinue);
                             }
-                            catch (Exception)
+                            catch (Exception ex)
                             {
                                 _tableDataContinue = true;
                                 Console.Clear();
-                                Console.WriteLine("Please Enter a Valid Option");
+                                Console.WriteLine(ex.Message);
                                 throw;
                             }
 
@@ -245,7 +275,7 @@ namespace SQLite_LFS_Prototype
                             
                             try
                             {
-                                sqlDatabase.ManuallyProcess_Testing("ManualTx");
+                                sqlDatabase.ManuallyProcess();
                             }
                             catch (Exception ex)
                             {

@@ -113,6 +113,8 @@
   <ItemGroup>
     <Compile Include="Database.cs" />
     <Compile Include="DataModel.cs" />
+    <Compile Include="ExtDataComparer.cs" />
+    <Compile Include="FileDataComparer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ModelAPI.cs" />
